@@ -114,6 +114,12 @@ export default {
     },
   },
   plugins: [
-    require('tailwindcss-animate'),
+    (() => {
+      try {
+        return require('tailwindcss-animate');
+      } catch (e) {
+        return function() {};
+      }
+    })(),
   ],
 }
