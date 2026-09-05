@@ -28,7 +28,17 @@ test('Phase 6: Discount Engine + Risk Engine Comprehensive Test Suite', async (t
     // Fetch users
     adminUser = await prisma.user.findUnique({ where: { email: 'admin@dealflow360.com' } });
     salesUser1 = await prisma.user.findUnique({ where: { email: 'sales.rep@dealflow360.com' } });
-    salesUser2 = await prisma.user.findUnique({ where: { email: 'sales.rep2@dealflow360.com' } });
+    salesUser2 = await prisma.user.upsert({
+      where: { email: 'sales.rep2@dealflow360.com' },
+      update: { isActive: true },
+      create: {
+        name: 'Bob Martinez (Sales Rep 2)',
+        email: 'sales.rep2@dealflow360.com',
+        passwordHash: salesUser1 ? salesUser1.passwordHash : '$2b$10$dummyhashformockingtestusers1234567890',
+        role: UserRole.SALES_REP,
+        isActive: true,
+      },
+    });
     managerUser = await prisma.user.findUnique({ where: { email: 'sales.manager@dealflow360.com' } });
     financeUser = await prisma.user.findUnique({ where: { email: 'finance@dealflow360.com' } });
 

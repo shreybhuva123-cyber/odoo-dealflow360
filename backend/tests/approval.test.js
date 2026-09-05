@@ -27,16 +27,26 @@ test('Phase 7: Approval Workflow Engine Comprehensive Test Suite', async (t) => 
     // Fetch users
     adminUser = await prisma.user.findUnique({ where: { email: 'admin@dealflow360.com' } });
     salesUser1 = await prisma.user.findUnique({ where: { email: 'sales.rep@dealflow360.com' } });
-    salesUser2 = await prisma.user.findUnique({ where: { email: 'sales.rep2@dealflow360.com' } });
+    salesUser2 = await prisma.user.upsert({
+      where: { email: 'sales.rep2@dealflow360.com' },
+      update: { isActive: true },
+      create: {
+        name: 'Bob Martinez (Sales Rep 2)',
+        email: 'sales.rep2@dealflow360.com',
+        passwordHash: salesUser1 ? salesUser1.passwordHash : '$2b$10$dummyhashformockingtestusers1234567890',
+        role: UserRole.SALES_REP,
+        isActive: true,
+      },
+    });
     managerUser = await prisma.user.findUnique({ where: { email: 'sales.manager@dealflow360.com' } });
     financeUser = await prisma.user.findUnique({ where: { email: 'finance@dealflow360.com' } });
     opsUser = await prisma.user.findUnique({ where: { email: 'operations@dealflow360.com' } });
 
-    assert.ok(adminUser && salesUser1 && managerUser && financeUser && opsUser);
+    assert.ok(adminUser && salesUser1 && salesUser2 && managerUser && financeUser && opsUser);
 
     adminToken = generateAccessToken(adminUser);
     sales1Token = generateAccessToken(salesUser1);
-    sales2Token = generateAccessToken(salesUser2 || salesUser1);
+    sales2Token = generateAccessToken(salesUser2);
     managerToken = generateAccessToken(managerUser);
     financeToken = generateAccessToken(financeUser);
     opsToken = generateAccessToken(opsUser);

@@ -469,14 +469,25 @@ export class ApprovalService {
       // 5. Sequential prerequisite check
       await this.checkPrerequisiteStep(approval, tx);
 
-      // 6. Mark approval as APPROVED
-      const updatedApproval = await tx.approval.update({
-        where: { id: approvalId },
+      // 6. Mark approval as APPROVED with atomic concurrency protection
+      const updateResult = await tx.approval.updateMany({
+        where: {
+          id: approvalId,
+          status: ApprovalStatus.PENDING,
+        },
         data: {
           status: ApprovalStatus.APPROVED,
           approverId: user.id,
           decidedAt: new Date(),
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new AppError('This approval step has already been approved or is not in a valid state', 400);
+      }
+
+      const updatedApproval = await tx.approval.findUnique({
+        where: { id: approvalId },
         include: {
           quotation: true,
           approver: {
@@ -586,15 +597,26 @@ export class ApprovalService {
       // 5. Prerequisite step check
       await this.checkPrerequisiteStep(approval, tx);
 
-      // 6. Mark approval as REJECTED
-      const updatedApproval = await tx.approval.update({
-        where: { id: approvalId },
+      // 6. Mark approval as REJECTED with atomic concurrency protection
+      const updateResult = await tx.approval.updateMany({
+        where: {
+          id: approvalId,
+          status: ApprovalStatus.PENDING,
+        },
         data: {
           status: ApprovalStatus.REJECTED,
           approverId: user.id,
           rejectionReason: trimmedReason,
           decidedAt: new Date(),
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new AppError('This approval step has already been decided or is not in a valid state', 400);
+      }
+
+      const updatedApproval = await tx.approval.findUnique({
+        where: { id: approvalId },
         include: {
           quotation: true,
           approver: {

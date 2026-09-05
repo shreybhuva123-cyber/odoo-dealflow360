@@ -330,6 +330,7 @@ export class OrderService {
             id: true,
             quoteNumber: true,
             status: true,
+            salesRepId: true,
             createdAt: true,
           },
         },
@@ -635,7 +636,8 @@ export class OrderService {
     }
 
     if (user.role === UserRole.SALES_REP) {
-      if (order.salesRepId && order.salesRepId !== user.id) {
+      const repId = order.salesRepId || (order.quotation && order.quotation.salesRepId);
+      if (repId && repId !== user.id) {
         throw new AppError('You do not have permission to view this order', 403);
       }
       return true;

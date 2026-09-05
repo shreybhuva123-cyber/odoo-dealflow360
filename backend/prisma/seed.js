@@ -25,6 +25,12 @@ export async function seedUsers() {
       role: UserRole.SALES_REP,
     },
     {
+      email: 'sales.rep2@dealflow360.com',
+      name: 'Bob Martinez (Sales Rep 2)',
+      passwordHash: DEMO_PASSWORD_HASH,
+      role: UserRole.SALES_REP,
+    },
+    {
       email: 'sales.manager@dealflow360.com',
       name: 'Michael Scott (Sales Manager)',
       passwordHash: DEMO_PASSWORD_HASH,
@@ -51,7 +57,9 @@ export async function seedUsers() {
       update: { name: u.name, role: u.role, isActive: true },
       create: u,
     });
-    seededUsers[u.role] = user;
+    if (!seededUsers[u.role]) {
+      seededUsers[u.role] = user;
+    }
   }
   return seededUsers;
 }
