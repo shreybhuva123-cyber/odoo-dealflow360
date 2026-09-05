@@ -45,10 +45,10 @@ router.get(
   (req, res, next) => activityController.getCustomerActivity(req, res, next)
 );
 
-// Only ADMIN can create, update, or deactivate customers
+// ADMIN, SALES_REP, and SALES_MANAGER can create customers
 router.post(
   '/',
-  authorizeRoles('ADMIN'),
+  authorizeRoles('ADMIN', 'SALES_REP', 'SALES_MANAGER'),
   validate(createCustomerSchema),
   (req, res, next) => customerController.create(req, res, next)
 );

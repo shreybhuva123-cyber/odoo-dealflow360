@@ -19,6 +19,7 @@ router.get(
 
 // 2. Specific entity activity timeline
 router.get('/entities/:entityType/:entityId', activityController.getEntityActivity);
+router.get('/entity/:entityType/:entityId', activityController.getEntityActivity);
 
 // 3. Entity shortcuts
 router.get('/quotations/:id', activityController.getQuotationActivity);

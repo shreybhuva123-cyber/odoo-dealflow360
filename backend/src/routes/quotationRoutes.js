@@ -64,6 +64,12 @@ router.put(
   validate(updateQuotationSchema),
   quotationController.update
 );
+router.patch(
+  '/:id',
+  authorizeRoles('SALES_REP', 'SALES_MANAGER', 'ADMIN'),
+  validate(updateQuotationSchema),
+  quotationController.update
+);
 
 // Cancel quotation (DELETE or POST /cancel)
 router.delete(

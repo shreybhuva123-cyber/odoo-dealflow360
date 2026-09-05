@@ -304,6 +304,6 @@ export const notificationService = {
       },
     });
 
-    return { count };
+    return { count, unreadCount: count };
   },
 };

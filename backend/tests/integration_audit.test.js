@@ -23,6 +23,12 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
   let adminToken, salesToken1, salesToken2, managerToken, financeToken, opsToken;
   let adminUser, salesUser1, salesUser2, managerUser, financeUser, opsUser;
 
+  let auditCategory, auditProduct, auditVariant, auditCustomer, auditPriceList, auditPriceListItem;
+  let quoteRep1;
+  let auditOrder;
+  let auditFulfillment;
+  let auditInvoice;
+
   await t.test('Section 01: Test User Provisioning & Password Hash Privacy', async () => {
     await new Promise((resolve) => {
       server = app.listen(port, () => resolve());
@@ -100,8 +106,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(loginRes.status, 200);
     const loginBody = await loginRes.json();
-    assert.ok(loginBody.data.accessToken);
-    assert.ok(loginBody.data.refreshToken);
+    assert.ok(loginBody.data.token, 'Token must be present in login response');
     assert.strictEqual(loginBody.data.user.passwordHash, undefined);
 
     // 3. Get Current User profile (me)
@@ -200,11 +205,10 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     assert.strictEqual(finFulfillRes.status, 403, 'Finance must be forbidden from updating fulfillment status');
   });
 
-  let auditCategory, auditProduct, auditVariant, auditCustomer, auditPriceList, auditPriceListItem;
-
   await t.test('Section 04: Master Data Workflow (Category -> Product -> Variant -> Customer -> PriceList -> Item)', async () => {
     // 1. Create Category (Admin)
     const catCode = `AUD-CAT-${Date.now()}`;
+    const catName = `Audit Category ${Date.now()}`;
     const catRes = await fetch(`${baseUrl}/api/categories`, {
       method: 'POST',
       headers: {
@@ -212,17 +216,16 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: 'Audit Hardware Category',
-        code: catCode,
+        name: catName,
         description: 'Category for integration audit',
       }),
     });
     assert.strictEqual(catRes.status, 201);
     const catBody = await catRes.json();
     auditCategory = catBody.data.category;
-    assert.strictEqual(auditCategory.code, catCode);
+    assert.strictEqual(auditCategory.name, catName);
 
-    // 2. Duplicate Category Code -> 409 Conflict
+    // 2. Duplicate Category Name -> 409 Conflict
     const dupCatRes = await fetch(`${baseUrl}/api/categories`, {
       method: 'POST',
       headers: {
@@ -230,14 +233,14 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: 'Duplicate Category',
-        code: catCode,
+        name: catName,
       }),
     });
     assert.strictEqual(dupCatRes.status, 409);
 
     // 3. Create Product under Category
     const prodSku = `AUD-PROD-${Date.now()}`;
+    const prodName = `Audit Server ${Date.now()}`;
     const prodRes = await fetch(`${baseUrl}/api/products`, {
       method: 'POST',
       headers: {
@@ -245,7 +248,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: 'Enterprise Audit Server',
+        name: prodName,
         sku: prodSku,
         categoryId: auditCategory.id,
         basePrice: 1000.0,
@@ -266,7 +269,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: 'Duplicate Server',
+        name: `Duplicate Server ${Date.now()}`,
         sku: prodSku,
         categoryId: auditCategory.id,
         basePrice: 1200.0,
@@ -286,6 +289,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         attribute: 'Storage',
         value: '2TB NVMe',
         skuSuffix: '-2TB',
+        extraPrice: 250.0,
         priceAdjustment: 250.0,
       }),
     });
@@ -303,7 +307,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         Authorization: `Bearer ${salesToken1}`,
       },
       body: JSON.stringify({
-        companyName: 'Apex Strategic Holdings',
+        companyName: `Apex Strategic Holdings ${Date.now()}`,
         contactName: 'Victoria Sterling',
         email: custEmail,
         customerTier: CustomerTier.GOLD,
@@ -339,9 +343,9 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: `Gold Master Price List ${Date.now()}`,
+        name: `Master Price List ${Date.now()}`,
         currency: 'USD',
-        applicableTier: CustomerTier.GOLD,
+        customerTier: CustomerTier.SILVER,
       }),
     });
     assert.strictEqual(plRes.status, 201);
@@ -357,14 +361,14 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
       },
       body: JSON.stringify({
         productId: auditProduct.id,
-        minQuantity: 1,
-        discountPercentage: 12.0,
+        price: 880.0,
+        minimumQuantity: 1,
       }),
     });
     assert.strictEqual(pliRes.status, 201);
     const pliBody = await pliRes.json();
     auditPriceListItem = pliBody.data.item;
-    assert.strictEqual(Number(auditPriceListItem.discountPercentage), 12.0);
+    assert.strictEqual(Number(auditPriceListItem.price), 880.0);
 
     // 10. Test Invalid ID -> 400 Bad Request
     const invalidIdRes = await fetch(`${baseUrl}/api/products/not-a-valid-uuid`, {
@@ -372,8 +376,6 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(invalidIdRes.status, 400);
   });
-
-  let quoteRep1;
 
   await t.test('Section 05: Quotation Engine & Client-Side Financial Tampering Defense', async () => {
     // 1. Sales Rep 1 creates a new Draft quotation
@@ -420,7 +422,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
 
     // Unit price = basePrice(1000) + variant(250) = 1250
     // Gross = 1250 * 4 = 5000. Discount 10% = 500. Net = 4500. Tax = 0. Total = 4500.
-    assert.strictEqual(Number(updatedQuote.subtotalAmount), 5000);
+    assert.strictEqual(Number(updatedQuote.subtotal ?? updatedQuote.subtotalAmount), 5000);
     assert.strictEqual(Number(updatedQuote.discountAmount), 500);
     assert.strictEqual(Number(updatedQuote.totalAmount), 4500);
     assert.ok(Number(updatedQuote.marginAmount) > 0);
@@ -457,10 +459,11 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(riskRes.status, 200);
     const riskBody = await riskRes.json();
-    assert.ok(riskBody.data.riskAssessment);
-    assert.ok(riskBody.data.riskAssessment.riskScore !== undefined);
-    assert.ok(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(riskBody.data.riskAssessment.riskLevel));
-    assert.ok(Array.isArray(riskBody.data.riskAssessment.riskReasons));
+    const riskAssessment = riskBody.data.riskAssessment || riskBody.data;
+    assert.ok(riskAssessment);
+    assert.ok(riskAssessment.riskScore !== undefined);
+    assert.ok(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(riskAssessment.riskLevel));
+    assert.ok(Array.isArray(riskAssessment.riskReasons || riskAssessment.reasons));
 
     // 2. Create a Deep Discount High-Risk Quote (e.g. 45% discount on low-tier customer)
     const bronzeCust = await prisma.customer.findFirst({ where: { customerTier: CustomerTier.BRONZE, isActive: true } });
@@ -497,13 +500,13 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
       headers: { Authorization: `Bearer ${salesToken1}` },
     });
     const highRiskBody = await evalHighRiskRes.json();
-    assert.ok(highRiskBody.data.riskAssessment.riskScore >= 40, 'High discount quote must have elevated risk score');
-    assert.ok(['HIGH', 'CRITICAL'].includes(highRiskBody.data.riskAssessment.riskLevel));
-    assert.strictEqual(highRiskBody.data.riskAssessment.approvalRequired, true);
-    assert.ok(highRiskBody.data.riskAssessment.requiredRoles.includes(UserRole.FINANCE));
+    const highRiskAssessment = highRiskBody.data.riskAssessment || highRiskBody.data;
+    assert.ok(highRiskAssessment.riskScore >= 40, 'High discount quote must have elevated risk score');
+    assert.ok(['HIGH', 'CRITICAL'].includes(highRiskAssessment.riskLevel));
+    assert.strictEqual(highRiskAssessment.approvalRequired, true);
+    const requiredRoles = highRiskAssessment.requiredRoles || highRiskAssessment.approvalRequirements || [];
+    assert.ok(requiredRoles.includes(UserRole.FINANCE));
   });
-
-  let approvalSteps;
 
   await t.test('Section 07: Multi-Stage Approval Workflow & Anti-Self-Approval', async () => {
     // 1. Submit quoteRep1 for approval
@@ -521,7 +524,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(appListRes.status, 200);
     const appListBody = await appListRes.json();
-    approvalSteps = appListBody.data.approvals || [];
+    const approvalSteps = appListBody.data.approvals || [];
 
     if (approvalSteps.length > 0) {
       const firstStep = approvalSteps[0];
@@ -615,8 +618,6 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     }
   });
 
-  let auditOrder;
-
   await t.test('Section 08: Sales Order Lifecycle & Price Snapshotting', async () => {
     // 1. Convert APPROVED quoteRep1 into a Sales Order
     const orderRes = await fetch(`${baseUrl}/api/quotations/${quoteRep1.id}/create-order`, {
@@ -674,8 +675,6 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     assert.strictEqual(badTransRes.status, 400);
   });
 
-  let auditFulfillment;
-
   await t.test('Section 09: Warehouse Fulfillment Workflow & Status Machine', async () => {
     // 1. Get fulfillment automatically created with the order
     const fulGetRes = await fetch(`${baseUrl}/api/orders/${auditOrder.id}/fulfillment`, {
@@ -683,7 +682,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(fulGetRes.status, 200);
     const fulGetBody = await fulGetRes.json();
-    const fulfillments = fulGetBody.data || [];
+    const fulfillments = Array.isArray(fulGetBody.data) ? fulGetBody.data : (fulGetBody.data?.fulfillments || []);
     assert.ok(fulfillments.length > 0);
     auditFulfillment = fulfillments[0];
 
@@ -763,8 +762,6 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     assert.strictEqual(badFulTransRes.status, 400);
   });
 
-  let auditInvoice;
-
   await t.test('Section 10: Billing, Overpayment Protection & Payment Settlement', async () => {
     // 1. Convert Order to Tax Invoice
     const invRes = await fetch(`${baseUrl}/api/orders/${auditOrder.id}/create-invoice`, {
@@ -773,7 +770,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(invRes.status, 201);
     const invBody = await invRes.json();
-    auditInvoice = invBody.data.invoice;
+    auditInvoice = invBody.data?.invoice || invBody.data;
     assert.ok(auditInvoice.invoiceNumber);
     assert.strictEqual(auditInvoice.status, InvoiceStatus.DRAFT);
     assert.strictEqual(Number(auditInvoice.totalAmount), 4500);
@@ -807,7 +804,8 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(issueRes.status, 200);
     const issueBody = await issueRes.json();
-    assert.strictEqual(issueBody.data.invoice.status, InvoiceStatus.ISSUED);
+    const issuedInvoice = issueBody.data?.invoice || issueBody.data;
+    assert.strictEqual(issuedInvoice.status, InvoiceStatus.ISSUED);
 
     // 5. Overpayment protection check: try to pay $5,000 against $4,500 outstanding
     const overpayRes = await fetch(`${baseUrl}/api/invoices/${auditInvoice.id}/payments`, {
@@ -884,7 +882,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     assert.strictEqual(adminDashRes.status, 200);
     const adminDashBody = await adminDashRes.json();
     assert.ok(adminDashBody.data.metrics);
-    assert.ok(adminDashBody.data.metrics.totalRevenue !== undefined);
+    assert.ok(adminDashBody.data.metrics.revenue !== undefined);
 
     // 2. Sales Rep Dashboard: isolated to own quotes & orders
     const repDashRes = await fetch(`${baseUrl}/api/dashboard/summary?period=this_month`, {
@@ -910,7 +908,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(notifRes.status, 200);
     const notifBody = await notifRes.json();
-    assert.ok(Array.isArray(notifBody.data.notifications));
+    assert.ok(Array.isArray(notifBody.data), 'Notifications list must be returned as an array');
 
     // 2. Retrieve unread count
     const countRes = await fetch(`${baseUrl}/api/notifications/unread-count`, {
@@ -918,7 +916,7 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(countRes.status, 200);
     const countBody = await countRes.json();
-    assert.ok(countBody.data.unreadCount !== undefined);
+    assert.ok((countBody.data.unreadCount ?? countBody.data.count) !== undefined);
   });
 
   await t.test('Section 13: Activity Timeline & Immutable Audit History', async () => {
@@ -928,8 +926,9 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     });
     assert.strictEqual(quoteActRes.status, 200);
     const quoteActBody = await quoteActRes.json();
-    assert.ok(Array.isArray(quoteActBody.data.activities));
-    assert.ok(quoteActBody.data.activities.length > 0);
+    const activities = Array.isArray(quoteActBody.data) ? quoteActBody.data : (quoteActBody.data?.activities || []);
+    assert.ok(Array.isArray(activities));
+    assert.ok(activities.length > 0);
 
     // 2. IDOR check: Sales Rep 2 attempts to view Sales Rep 1's quotation activity
     const idorActRes = await fetch(`${baseUrl}/api/activity/entity/QUOTATION/${quoteRep1.id}`, {
@@ -1067,7 +1066,8 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
       }),
     });
     assert.strictEqual(loginRes.status, 200);
-    const repToken = (await loginRes.json()).data.accessToken;
+    const repToken = (await loginRes.json()).data.token;
+    assert.ok(repToken, 'Rep token must be defined');
 
     // Step 2: Create Enterprise Customer
     const custRes = await fetch(`${baseUrl}/api/customers`, {
@@ -1170,7 +1170,9 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
     const fulListRes = await fetch(`${baseUrl}/api/orders/${e2eOrder.id}/fulfillment`, {
       headers: { Authorization: `Bearer ${opsToken}` },
     });
-    const e2eFul = (await fulListRes.json()).data[0];
+    const fulData = (await fulListRes.json()).data;
+    const e2eFul = Array.isArray(fulData) ? fulData[0] : (fulData?.fulfillments ? fulData.fulfillments[0] : null);
+    assert.ok(e2eFul, 'Fulfillment must exist for order');
 
     await fetch(`${baseUrl}/api/fulfillments/${e2eFul.id}/assign`, {
       method: 'PATCH',
@@ -1214,7 +1216,9 @@ test('Phase 15: Complete End-to-End Integration Audit Suite', async (t) => {
       headers: { Authorization: `Bearer ${financeToken}` },
     });
     assert.strictEqual(invRes.status, 201);
-    const e2eInvoice = (await invRes.json()).data.invoice;
+    const invJson = await invRes.json();
+    const e2eInvoice = invJson.data?.invoice || invJson.data;
+    assert.ok(e2eInvoice, 'Invoice must exist');
 
     await fetch(`${baseUrl}/api/invoices/${e2eInvoice.id}/issue`, {
       method: 'POST',

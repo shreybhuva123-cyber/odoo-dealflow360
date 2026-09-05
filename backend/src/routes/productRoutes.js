@@ -8,8 +8,23 @@ import {
   updateProductSchema,
   createVariantSchema,
 } from '../validators/productValidator.js';
+import { sendError } from '../utils/apiResponse.js';
 
 const router = Router();
+
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+router.param('id', (req, res, next, id) => {
+  if (!uuidRegex.test(id)) {
+    return sendError(res, 'Invalid ID format: must be a valid UUID', 'ValidationError', 400);
+  }
+  next();
+});
+router.param('productId', (req, res, next, id) => {
+  if (!uuidRegex.test(id)) {
+    return sendError(res, 'Invalid ID format: must be a valid UUID', 'ValidationError', 400);
+  }
+  next();
+});
 
 // Authentication required for all product endpoints
 router.use(authenticateToken);

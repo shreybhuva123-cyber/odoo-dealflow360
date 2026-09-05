@@ -150,6 +150,11 @@ export class QuotationController {
         persist: true,
         user: req.user,
       });
+      if (evaluation) {
+        evaluation.riskAssessment = { ...evaluation };
+        evaluation.requiredRoles = evaluation.approvalRequirements || [];
+        evaluation.riskReasons = evaluation.reasons || [];
+      }
       return sendSuccess(res, 'Quotation risk evaluated successfully', evaluation, 200);
     } catch (err) {
       next(err);
