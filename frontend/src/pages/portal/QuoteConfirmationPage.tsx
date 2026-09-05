@@ -12,8 +12,12 @@ import {
   Receipt,
   Mail,
   Calendar,
+  Printer,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/utils/formatters';
+import { printQuotation, downloadQuotationHtml } from '@/utils/quotationDownload';
 
 export function QuoteConfirmationPage() {
   const { token } = useParams<{ token: string }>();
@@ -30,10 +34,15 @@ export function QuoteConfirmationPage() {
   }
 
   const handlePrint = () => {
-    window.print();
+    printQuotation(quote);
   };
 
-  const currency = quote.currency || '₹';
+  const handleDownload = () => {
+    downloadQuotationHtml(quote);
+  };
+
+  const currency = quote.currency === 'INR' || quote.currency === '₹' ? '₹' : (quote.currency || '$');
+
 
   return (
     <div className="space-y-8 max-w-3xl mx-auto pb-16">
@@ -80,7 +89,7 @@ export function QuoteConfirmationPage() {
           <div className="space-y-1">
             <span className="text-[11px] text-slate-500 uppercase tracking-wider font-medium">Grand Total</span>
             <div className="font-mono text-base font-bold text-blue-400">
-              {currency}{quote.total.toLocaleString('en-IN')}
+              {formatCurrency(quote.total, quote.currency)}
             </div>
             <div className="text-[11px] text-slate-400">Taxes & fees included</div>
           </div>
@@ -140,17 +149,27 @@ export function QuoteConfirmationPage() {
             onClick={handlePrint}
             variant="outline"
             size="sm"
-            className="border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700"
+            className="border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700 text-xs"
           >
-            <Download className="mr-1.5 h-4 w-4 text-slate-400" />
-            Print / Save Order Receipt
+            <Printer className="mr-1.5 h-4 w-4 text-blue-400" />
+            Print / Save PDF
+          </Button>
+
+          <Button
+            onClick={handleDownload}
+            variant="outline"
+            size="sm"
+            className="border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700 text-xs"
+          >
+            <FileText className="mr-1.5 h-4 w-4 text-emerald-400" />
+            Export HTML
           </Button>
 
           <Link
             to={`/portal/quote/${token}`}
             className={cn(
               buttonVariants({ variant: 'default', size: 'sm' }),
-              'bg-blue-600 hover:bg-blue-500 text-white font-medium'
+              'bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs'
             )}
           >
             Return to Quotation Workspace

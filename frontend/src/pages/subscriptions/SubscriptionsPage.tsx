@@ -52,6 +52,7 @@ export function SubscriptionsPage() {
     let totalMrr = 0;
     let totalArr = 0;
     let activeCount = 0;
+    const currency = subscriptions[0]?.currency || 'INR';
 
     subscriptions.forEach((sub) => {
       if (sub.status === 'active') {
@@ -66,6 +67,7 @@ export function SubscriptionsPage() {
       totalArr,
       activeCount,
       totalCount: subscriptions.length,
+      currency,
     };
   }, [subscriptions]);
 
@@ -146,7 +148,7 @@ export function SubscriptionsPage() {
               </div>
             </div>
             <div className="font-mono text-xl font-bold text-primary">
-              {formatCurrency(metrics.totalMrr)}
+              {formatCurrency(metrics.totalMrr, metrics.currency)}
             </div>
             <div className="text-[11px] text-muted-foreground mt-1">
               Active SaaS revenue run-rate
@@ -161,7 +163,7 @@ export function SubscriptionsPage() {
               </div>
             </div>
             <div className="font-mono text-xl font-bold text-emerald-400">
-              {formatCurrency(metrics.totalArr)}
+              {formatCurrency(metrics.totalArr, metrics.currency)}
             </div>
             <div className="text-[11px] text-muted-foreground mt-1">
               Projected 12-month contracted value

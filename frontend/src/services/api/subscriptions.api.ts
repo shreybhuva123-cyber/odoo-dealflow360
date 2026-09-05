@@ -16,7 +16,7 @@ export const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
     mrr: 250000,
     arr: 3000000,
     amount: 250000,
-    currency: '₹',
+    currency: 'INR',
     billingCycle: 'MONTHLY',
     frequency: 'Monthly',
     startDate: '2026-09-01',
@@ -45,7 +45,7 @@ export const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
     mrr: 80000,
     arr: 960000,
     amount: 80000,
-    currency: '₹',
+    currency: 'INR',
     billingCycle: 'MONTHLY',
     frequency: 'Monthly',
     startDate: '2026-08-15',
@@ -72,7 +72,7 @@ export const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
     mrr: 180000,
     arr: 2160000,
     amount: 540000,
-    currency: '₹',
+    currency: 'INR',
     billingCycle: 'QUARTERLY',
     frequency: 'Quarterly',
     startDate: '2026-08-01',
@@ -99,7 +99,7 @@ export const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
     mrr: 95000,
     arr: 1140000,
     amount: 95000,
-    currency: '₹',
+    currency: 'INR',
     billingCycle: 'MONTHLY',
     frequency: 'Monthly',
     startDate: '2026-07-15',
@@ -116,6 +116,11 @@ export const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
 
 export const MOCK_SUBSCRIPTIONS = DEFAULT_SUBSCRIPTIONS;
 
+function normalizeCurrency(cur?: string): string {
+  if (!cur || cur === '₹') return 'INR';
+  return cur;
+}
+
 function loadStoredSubscriptions(): Subscription[] {
   try {
     const raw = localStorage.getItem(SUBSCRIPTIONS_STORAGE_KEY);
@@ -123,7 +128,12 @@ function loadStoredSubscriptions(): Subscription[] {
       localStorage.setItem(SUBSCRIPTIONS_STORAGE_KEY, JSON.stringify(DEFAULT_SUBSCRIPTIONS));
       return DEFAULT_SUBSCRIPTIONS;
     }
-    return JSON.parse(raw);
+    const parsed: Subscription[] = JSON.parse(raw);
+    // Sanitize any previously saved currency symbols
+    return parsed.map((s) => ({
+      ...s,
+      currency: normalizeCurrency(s.currency),
+    }));
   } catch {
     return DEFAULT_SUBSCRIPTIONS;
   }

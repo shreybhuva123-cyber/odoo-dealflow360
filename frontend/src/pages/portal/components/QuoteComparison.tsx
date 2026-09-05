@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CustomerQuote } from '@/types';
 import { GitCompare, TrendingDown, ArrowRight, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 interface QuoteComparisonProps {
   quote: CustomerQuote;
@@ -17,10 +18,10 @@ export function QuoteComparison({ quote }: QuoteComparisonProps) {
   const currTotal = quote.total;
   const diffTotal = currTotal - prev.total;
   const isSavings = diffTotal < 0;
-  const currency = quote.currency || '₹';
+  const currency = quote.currency || 'INR';
 
-  const formatCurrency = (val: number) =>
-    `${currency}${Math.abs(val).toLocaleString('en-IN')}`;
+  const formatMoney = (val: number) =>
+    formatCurrency(Math.abs(val), currency);
 
   return (
     <div className="rounded-xl border border-indigo-800/40 bg-gradient-to-r from-indigo-950/30 via-slate-900/60 to-blue-950/30 p-5 shadow-sm backdrop-blur">
@@ -47,18 +48,18 @@ export function QuoteComparison({ quote }: QuoteComparisonProps) {
         <div className="flex items-center gap-4 self-end sm:self-center">
           <div className="text-right">
             <div className="text-[11px] text-slate-400">
-              <span className="line-through">{formatCurrency(prev.total)}</span>
+              <span className="line-through">{formatMoney(prev.total)}</span>
               <ArrowRight className="inline mx-1 h-3 w-3 text-slate-500" />
-              <span className="font-bold text-white">{formatCurrency(currTotal)}</span>
+              <span className="font-bold text-white">{formatMoney(currTotal)}</span>
             </div>
             {isSavings ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
                 <TrendingDown className="h-3.5 w-3.5" />
-                Net Savings: {formatCurrency(diffTotal)}
+                Net Savings: {formatMoney(diffTotal)}
               </span>
             ) : (
               <span className="text-xs font-semibold text-indigo-400">
-                Delta: +{formatCurrency(diffTotal)}
+                Delta: +{formatMoney(diffTotal)}
               </span>
             )}
           </div>

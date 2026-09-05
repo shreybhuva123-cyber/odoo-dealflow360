@@ -91,24 +91,25 @@ export function QuoteActions({
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-5 backdrop-blur sticky bottom-4 shadow-xl z-20">
+    <div className="rounded-2xl border border-slate-700/80 bg-slate-900/95 p-4 sm:p-5 backdrop-blur-xl sticky bottom-4 shadow-2xl shadow-black/60 z-30 ring-1 ring-white/10">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="flex items-center gap-2.5 text-xs text-slate-300">
+          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           <ShieldCheck className="h-4 w-4 text-emerald-400" />
-          <span>
+          <span className="font-medium">
             {isChangesRequested
               ? 'Changes requested — awaiting revised proposal from sales.'
-              : 'Review terms and take action on this proposal.'}
+              : 'Official proposal ready for digital review & confirmation.'}
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onRejectClick}
-            className="border-slate-700 text-rose-400 hover:bg-rose-950/30 hover:border-rose-700"
+            className="border-slate-700/80 bg-slate-800/40 text-rose-400 hover:bg-rose-950/40 hover:border-rose-600/60 hover:text-rose-300 text-xs transition-all"
           >
             <XCircle className="mr-1.5 h-3.5 w-3.5" />
             Decline
@@ -118,7 +119,7 @@ export function QuoteActions({
             to={`/portal/quote/${token}/negotiate`}
             className={cn(
               buttonVariants({ variant: 'outline', size: 'sm' }),
-              'border-blue-700/60 bg-blue-950/30 text-blue-300 hover:bg-blue-900/40 hover:text-white'
+              'border-blue-700/50 bg-blue-950/30 text-blue-300 hover:bg-blue-900/50 hover:text-white text-xs transition-all'
             )}
           >
             <MessageSquare className="mr-1.5 h-3.5 w-3.5 text-blue-400" />
@@ -129,7 +130,7 @@ export function QuoteActions({
             type="button"
             size="sm"
             onClick={onAcceptClick}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/30"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-900/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
             Accept & Sign Agreement

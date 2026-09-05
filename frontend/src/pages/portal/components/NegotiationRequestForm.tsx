@@ -3,6 +3,7 @@ import { CustomerQuote, NegotiationItemRequest } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowRight, Send, CheckSquare, Square, Calculator, Info } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 interface NegotiationRequestFormProps {
   quote: CustomerQuote;
@@ -123,9 +124,9 @@ export function NegotiationRequestForm({
     });
   };
 
-  const currency = quote.currency || '₹';
-  const formatCurrency = (val: number) =>
-    `${currency}${Math.abs(val).toLocaleString('en-IN')}`;
+  const currency = quote.currency || 'INR';
+  const formatMoney = (val: number) =>
+    formatCurrency(Math.abs(val), currency);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -188,8 +189,8 @@ export function NegotiationRequestForm({
                       </div>
                       <div className="text-xs text-slate-400 mt-0.5">
                         Current: <strong className="text-slate-200">{item.quantity} units</strong> @{' '}
-                        <strong className="text-slate-200">{currency}{item.unitPrice.toLocaleString('en-IN')}</strong> ={' '}
-                        <strong className="text-slate-200">{currency}{item.total.toLocaleString('en-IN')}</strong>
+                        <strong className="text-slate-200">{formatMoney(item.unitPrice)}</strong> ={' '}
+                        <strong className="text-slate-200">{formatMoney(item.total)}</strong>
                       </div>
                     </div>
                   </div>
@@ -208,7 +209,7 @@ export function NegotiationRequestForm({
                       </div>
 
                       <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-slate-400">Target Rate ({currency}):</span>
+                        <span className="text-slate-400">Target Rate:</span>
                         <Input
                           type="number"
                           min={0}
@@ -222,7 +223,7 @@ export function NegotiationRequestForm({
                       <div className="text-xs font-mono font-semibold text-right min-w-[100px]">
                         <div className="text-slate-400 text-[10px]">Proposed Item Total</div>
                         <div className="text-blue-400">
-                          {currency}{(state.requestedQuantity * state.requestedPrice).toLocaleString('en-IN')}
+                          {formatMoney(state.requestedQuantity * state.requestedPrice)}
                         </div>
                       </div>
                     </div>
@@ -257,11 +258,11 @@ export function NegotiationRequestForm({
 
             <div className="flex items-center gap-4 text-xs font-mono">
               <span className="text-slate-400">
-                Current Selected: {currency}{currentSelectedSubtotal.toLocaleString('en-IN')}
+                Current Selected: {formatMoney(currentSelectedSubtotal)}
               </span>
               <ArrowRight className="h-3.5 w-3.5 text-slate-600" />
               <span className="text-white font-semibold">
-                Counter Proposal: {currency}{counterSelectedSubtotal.toLocaleString('en-IN')}
+                Counter Proposal: {formatMoney(counterSelectedSubtotal)}
               </span>
               <span
                 className={`font-bold px-2 py-0.5 rounded text-[11px] ${
@@ -270,7 +271,7 @@ export function NegotiationRequestForm({
                     : 'bg-blue-950/60 text-blue-400 border border-blue-800/40'
                 }`}
               >
-                Delta: {subtotalDelta < 0 ? '-' : '+'}{formatCurrency(subtotalDelta)}
+                Delta: {subtotalDelta < 0 ? '-' : '+'}{formatMoney(subtotalDelta)}
               </span>
             </div>
           </div>

@@ -1,15 +1,15 @@
 import React from 'react';
 import { CustomerQuoteItem } from '@/types';
 import { Package, Tag } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 interface CustomerQuoteItemsProps {
   items: CustomerQuoteItem[];
   currency?: string;
 }
 
-export function CustomerQuoteItems({ items, currency = '₹' }: CustomerQuoteItemsProps) {
-  const formatCurrency = (val: number) =>
-    `${currency}${val.toLocaleString('en-IN')}`;
+export function CustomerQuoteItems({ items, currency = 'INR' }: CustomerQuoteItemsProps) {
+  const formatMoney = (val: number) => formatCurrency(val, currency);
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-sm backdrop-blur">
@@ -64,10 +64,10 @@ export function CustomerQuoteItems({ items, currency = '₹' }: CustomerQuoteIte
                   {item.quantity}
                 </td>
                 <td className="px-3 py-4 text-right font-mono text-sm text-slate-300">
-                  {formatCurrency(item.unitPrice)}
+                  {formatMoney(item.unitPrice)}
                 </td>
                 <td className="py-4 pl-3 pr-6 text-right font-mono font-semibold text-white">
-                  {formatCurrency(item.total)}
+                  {formatMoney(item.total)}
                 </td>
               </tr>
             ))}
@@ -102,10 +102,10 @@ export function CustomerQuoteItems({ items, currency = '₹' }: CustomerQuoteIte
             <div className="flex items-center justify-between border-t border-slate-800/50 pt-2 text-xs">
               <span className="text-slate-400">
                 Qty: <strong className="text-slate-200">{item.quantity}</strong> &times;{' '}
-                {formatCurrency(item.unitPrice)}
+                {formatMoney(item.unitPrice)}
               </span>
               <span className="font-mono font-bold text-white text-sm">
-                {formatCurrency(item.total)}
+                {formatMoney(item.total)}
               </span>
             </div>
           </div>

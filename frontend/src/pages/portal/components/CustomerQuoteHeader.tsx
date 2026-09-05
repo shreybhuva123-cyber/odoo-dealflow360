@@ -1,15 +1,16 @@
 import React from 'react';
 import { CustomerQuote } from '@/types';
 import { CustomerQuoteStatus } from './CustomerQuoteStatus';
-import { Calendar, User, Mail, Clock, AlertTriangle, ShieldCheck, Download } from 'lucide-react';
+import { Calendar, User, Mail, Clock, AlertTriangle, ShieldCheck, Download, Printer, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CustomerQuoteHeaderProps {
   quote: CustomerQuote;
   onDownloadPdf?: () => void;
+  onDownloadHtml?: () => void;
 }
 
-export function CustomerQuoteHeader({ quote, onDownloadPdf }: CustomerQuoteHeaderProps) {
+export function CustomerQuoteHeader({ quote, onDownloadPdf, onDownloadHtml }: CustomerQuoteHeaderProps) {
   // Calculate remaining days
   const today = new Date();
   const validUntilDate = new Date(quote.validUntil);
@@ -22,48 +23,62 @@ export function CustomerQuoteHeader({ quote, onDownloadPdf }: CustomerQuoteHeade
     <div className="space-y-4">
       {/* Expiry Warning Banner if expiring soon */}
       {isExpiringSoon && !isExpired && quote.status !== 'accepted' && quote.status !== 'rejected' && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+        <div className="flex items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-sm text-amber-300 shadow-sm">
           <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
-          <div className="flex-1">
-            <span className="font-semibold">Validity Notice:</span> This commercial offer expires in{' '}
-            <strong className="underline">{diffDays === 0 ? 'today' : `${diffDays} day${diffDays > 1 ? 's' : ''}`}</strong>.
+          <div className="flex-1 text-xs">
+            <span className="font-semibold text-amber-200">Validity Notice:</span> This commercial offer expires in{' '}
+            <strong className="underline text-amber-300 font-bold">{diffDays === 0 ? 'today' : `${diffDays} day${diffDays > 1 ? 's' : ''}`}</strong>.
             Prices and terms are subject to adjustment upon expiry.
           </div>
         </div>
       )}
 
       {/* Main Header Container */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 shadow-sm backdrop-blur">
+      <div className="rounded-2xl border border-slate-800/90 bg-gradient-to-b from-slate-900/95 to-slate-900/80 p-6 sm:p-7 shadow-lg backdrop-blur">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-white">
-                Quotation {quote.quoteNumber}
+              <span className="text-xs font-mono uppercase tracking-widest text-blue-400 font-semibold px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
+                Official Proposal
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-mono">
+                {quote.quoteNumber}
               </h1>
               <CustomerQuoteStatus status={quote.status} size="md" />
               {quote.version > 1 && (
-                <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-400 border border-blue-500/20">
+                <span className="rounded-md bg-indigo-500/20 px-2 py-0.5 text-xs font-semibold text-indigo-300 border border-indigo-500/30">
                   Version {quote.version} (Revised)
                 </span>
               )}
             </div>
             <p className="text-sm text-slate-400">
-              Prepared especially for{' '}
-              <span className="font-semibold text-slate-200">{quote.customerName}</span>
-              {quote.customerEmail && <span> ({quote.customerEmail})</span>}
+              Commercial proposal prepared specifically for{' '}
+              <span className="font-semibold text-slate-100">{quote.customerName}</span>
+              {quote.customerEmail && <span className="text-slate-400"> &bull; {quote.customerEmail}</span>}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {onDownloadPdf && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onDownloadPdf}
-                className="border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700 hover:text-white"
+                className="border-slate-700 bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white text-xs h-8"
               >
-                <Download className="mr-1.5 h-3.5 w-3.5 text-slate-400" />
+                <Printer className="mr-1.5 h-3.5 w-3.5 text-blue-400" />
                 Print / Save PDF
+              </Button>
+            )}
+            {onDownloadHtml && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDownloadHtml}
+                className="border-slate-700 bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white text-xs h-8"
+              >
+                <FileText className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
+                Export HTML
               </Button>
             )}
           </div>

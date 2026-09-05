@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CustomerQuote } from '@/types';
 import { ChevronDown, ChevronUp, FileText, CheckCircle } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 interface CustomerPricingSummaryProps {
   quote: CustomerQuote;
@@ -8,10 +9,9 @@ interface CustomerPricingSummaryProps {
 
 export function CustomerPricingSummary({ quote }: CustomerPricingSummaryProps) {
   const [showTerms, setShowTerms] = useState(false);
-  const currency = quote.currency || '₹';
+  const currency = quote.currency || 'INR';
 
-  const formatCurrency = (val: number) =>
-    `${currency}${val.toLocaleString('en-IN')}`;
+  const formatMoney = (val: number) => formatCurrency(val, currency);
 
   return (
     <div className="space-y-6">
@@ -57,7 +57,7 @@ export function CustomerPricingSummary({ quote }: CustomerPricingSummaryProps) {
           <div className="space-y-2.5 text-sm">
             <div className="flex justify-between text-slate-400">
               <span>Gross Subtotal</span>
-              <span className="font-mono text-slate-200">{formatCurrency(quote.subtotal)}</span>
+              <span className="font-mono text-slate-200">{formatMoney(quote.subtotal)}</span>
             </div>
 
             {quote.discount > 0 && (
@@ -65,19 +65,19 @@ export function CustomerPricingSummary({ quote }: CustomerPricingSummaryProps) {
                 <span className="flex items-center gap-1">
                   <span>Volume Savings</span>
                 </span>
-                <span className="font-mono">-{formatCurrency(quote.discount)}</span>
+                <span className="font-mono">-{formatMoney(quote.discount)}</span>
               </div>
             )}
 
             <div className="flex justify-between text-slate-400">
               <span>Estimated GST (18%)</span>
-              <span className="font-mono text-slate-200">{formatCurrency(quote.tax)}</span>
+              <span className="font-mono text-slate-200">{formatMoney(quote.tax)}</span>
             </div>
 
             {quote.shipping !== undefined && quote.shipping > 0 && (
               <div className="flex justify-between text-slate-400">
                 <span>Shipping & Handling</span>
-                <span className="font-mono text-slate-200">{formatCurrency(quote.shipping)}</span>
+                <span className="font-mono text-slate-200">{formatMoney(quote.shipping)}</span>
               </div>
             )}
 
@@ -85,7 +85,7 @@ export function CustomerPricingSummary({ quote }: CustomerPricingSummaryProps) {
               <div className="flex justify-between items-baseline">
                 <span className="text-base font-bold text-white">Total Amount</span>
                 <span className="font-mono text-2xl font-bold text-blue-400">
-                  {formatCurrency(quote.total)}
+                  {formatMoney(quote.total)}
                 </span>
               </div>
               <p className="mt-1 text-[11px] text-slate-500 text-right">

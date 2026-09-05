@@ -4,6 +4,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
 
 interface AcceptQuoteDialogProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function AcceptQuoteDialog({
           <div className="space-y-0.5">
             <p className="font-semibold text-white">Digital Sign-Off Agreement</p>
             <p className="text-[11px] text-emerald-300/80">
-              Total Order Value: <span className="font-bold text-white font-mono">₹{quote.total.toLocaleString('en-IN')}</span>.
+              Total Order Value: <span className="font-bold text-white font-mono">{formatCurrency(quote.total, quote.currency)}</span>.
               Upon confirmation, our fulfillment team will initiate delivery scheduling.
             </p>
           </div>

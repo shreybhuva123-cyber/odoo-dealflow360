@@ -21,6 +21,8 @@ import {
   CustomerQuoteSkeleton,
 } from './components';
 
+import { printQuotation, downloadQuotationHtml } from '@/utils/quotationDownload';
+
 export function CustomerQuotePage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -73,13 +75,21 @@ export function CustomerQuotePage() {
   };
 
   const handlePrintPdf = () => {
-    window.print();
+    printQuotation(quote);
+  };
+
+  const handleDownloadHtml = () => {
+    downloadQuotationHtml(quote);
   };
 
   return (
     <div className="space-y-8 pb-12">
       {/* Header with Quote ID, Expiration countdown, and Rep info */}
-      <CustomerQuoteHeader quote={quote} onDownloadPdf={handlePrintPdf} />
+      <CustomerQuoteHeader
+        quote={quote}
+        onDownloadPdf={handlePrintPdf}
+        onDownloadHtml={handleDownloadHtml}
+      />
 
       {/* If offer is expired, show prominent notice */}
       {isExpired ? (
