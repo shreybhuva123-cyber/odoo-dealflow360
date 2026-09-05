@@ -114,26 +114,54 @@ export const MOCK_CUSTOMERS: Customer[] = [
   },
 ];
 
+const STORAGE_KEY = 'dealflow_customers_v2';
+
+function loadStoredCustomers(): Customer[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn('Failed to load customers from storage', e);
+  }
+  return MOCK_CUSTOMERS;
+}
+
+function saveStoredCustomers(customers: Customer[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
+  } catch (e) {
+    console.warn('Failed to save customers to storage', e);
+  }
+}
+
 export const customersApi = {
   async getAll(): Promise<Customer[]> {
     try {
       const res = await apiClient.get<ApiResponse<Customer[]>>('/customers');
-      return res.data.data;
+      if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        saveStoredCustomers(res.data.data);
+        return res.data.data;
+      }
+      return loadStoredCustomers();
     } catch {
-      return MOCK_CUSTOMERS;
+      return loadStoredCustomers();
     }
   },
 
-  async search(query: string): Promise<Customer[]> {
+  async search(query: string, tier?: string): Promise<Customer[]> {
     const all = await customersApi.getAll();
     const q = query.toLowerCase().trim();
-    if (!q) return all;
-    return all.filter(
-      (c) =>
+    return all.filter((c) => {
+      const matchesQ =
+        !q ||
         c.companyName.toLowerCase().includes(q) ||
         c.industry.toLowerCase().includes(q) ||
-        c.country.toLowerCase().includes(q)
-    );
+        c.country.toLowerCase().includes(q);
+      const matchesTier = !tier || tier === 'ALL' || c.tier === tier;
+      return matchesQ && matchesTier;
+    });
   },
 
   async getById(id: string): Promise<Customer | null> {
@@ -141,7 +169,90 @@ export const customersApi = {
       const res = await apiClient.get<ApiResponse<Customer>>(`/customers/${id}`);
       return res.data.data;
     } catch {
-      return MOCK_CUSTOMERS.find((c) => c.id === id || c.companyName.toLowerCase() === id.toLowerCase()) || null;
+      const list = loadStoredCustomers();
+      return list.find((c) => c.id === id || c.companyName.toLowerCase() === id.toLowerCase()) || null;
     }
   },
+
+  async create(payload: Partial<Customer>): Promise<Customer> {
+    try {
+      const res = await apiClient.post<ApiResponse<Customer>>('/customers', payload);
+      return res.data.data;
+    } catch {
+      const list = loadStoredCustomers();
+      const newCustomer: Customer = {
+        id: `cust_${Date.now()}`,
+        companyName: payload.companyName || 'New Client Enterprise',
+        industry: payload.industry || 'General Commerce',
+        tier: payload.tier || 'SMB',
+        country: payload.country || 'United States',
+        currency: payload.currency || 'USD',
+        accountManagerId: payload.accountManagerId || 'usr_rep_1',
+        isActive: true,
+        contacts: payload.contacts || [
+          {
+            id: `cnt_${Date.now()}`,
+            name: 'Primary Contact',
+            email: 'contact@client.com',
+            phone: '+1 555-0100',
+            isPrimary: true,
+            roleTitle: 'Procurement Lead',
+          },
+        ],
+        creditProfile: payload.creditProfile || {
+          creditLimit: 100000,
+          availableCredit: 100000,
+          paymentTerms: 'NET30',
+          riskRating: 'LOW',
+          overdueBalance: 0,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const updated = [newCustomer, ...list];
+      saveStoredCustomers(updated);
+      return newCustomer;
+    }
+  },
+
+  async update(id: string, updates: Partial<Customer>): Promise<Customer> {
+    try {
+      const res = await apiClient.patch<ApiResponse<Customer>>(`/customers/${id}`, updates);
+      return res.data.data;
+    } catch {
+      const list = loadStoredCustomers();
+      const idx = list.findIndex((c) => c.id === id);
+      if (idx >= 0) {
+        const updated = {
+          ...list[idx],
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+        list[idx] = updated;
+        saveStoredCustomers(list);
+        return updated;
+      }
+      return { ...MOCK_CUSTOMERS[0], ...updates };
+    }
+  },
+
+  async updateCredit(id: string, creditProfile: Partial<Customer['creditProfile']>): Promise<Customer> {
+    const list = loadStoredCustomers();
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx >= 0) {
+      const updated = {
+        ...list[idx],
+        creditProfile: {
+          ...list[idx].creditProfile,
+          ...creditProfile,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+      list[idx] = updated;
+      saveStoredCustomers(list);
+      return updated;
+    }
+    throw new Error(`Customer ${id} not found`);
+  },
 };
+

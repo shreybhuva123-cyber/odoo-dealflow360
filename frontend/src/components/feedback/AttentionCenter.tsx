@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useApprovals } from '@/hooks/useApprovals';
+import { usePipeline } from '@/hooks/usePipeline';
+import { useQuotations } from '@/hooks/useQuotations';
+import { useInvoices } from '@/hooks/useInvoices';
 
-interface AttentionItem {
+export interface AttentionItem {
   id: string;
   label: string;
   count: number;
@@ -15,47 +19,81 @@ interface AttentionCenterProps {
   items?: AttentionItem[];
 }
 
-const DEFAULT_ATTENTION_ITEMS: AttentionItem[] = [
-  {
-    id: 'approvals',
-    label: 'Approvals Pending Review',
-    count: 3,
-    icon: '⏳',
-    badgeColor: 'amber',
-    route: '/app/approvals',
-    description: 'Q-1042 Acme Corp & 2 others waiting',
-  },
-  {
-    id: 'critical_deals',
-    label: 'Critical Deals at Risk',
-    count: 2,
-    icon: '🔴',
-    badgeColor: 'red',
-    route: '/app/deal-health',
-    description: 'OmniCorp Global health score: 34/100',
-  },
-  {
-    id: 'negotiations',
-    label: 'Customer Negotiations Active',
-    count: 1,
-    icon: '💬',
-    badgeColor: 'blue',
-    route: '/portal/quote/portal_acme_1042/negotiate',
-    description: 'Acme Corp proposed $1,050/unit',
-  },
-  {
-    id: 'overdue_invoices',
-    label: 'Overdue Receivables',
-    count: 2,
-    icon: '🧾',
-    badgeColor: 'red',
-    route: '/app/invoices',
-    description: 'INV-2026-004 & INV-2026-007 pending',
-  },
-];
+export function AttentionCenter({ items }: AttentionCenterProps) {
+  const { data: approvals = [] } = useApprovals();
+  const { data: deals = [] } = usePipeline();
+  const { data: quotes = [] } = useQuotations();
+  const { data: invoices = [] } = useInvoices();
 
-export function AttentionCenter({ items = DEFAULT_ATTENTION_ITEMS }: AttentionCenterProps) {
-  const totalCount = items.reduce((acc, i) => acc + i.count, 0);
+  const displayItems = React.useMemo(() => {
+    if (items && items.length > 0) return items;
+
+    const pendingApprovals = approvals.filter((a) => a.status === 'PENDING');
+    const riskyDeals = deals.filter((d) => d.health === 'critical' || d.health === 'at_risk');
+    const negotiationQuotes = quotes.filter((q) => q.status === 'NEGOTIATION');
+    const overdueInvoices = invoices.filter(
+      (i) => i.status === 'overdue' || (i.status === 'pending' && new Date(i.dueDate).getTime() < Date.now())
+    );
+
+    const list: AttentionItem[] = [];
+
+    if (pendingApprovals.length > 0) {
+      const first = pendingApprovals[0];
+      list.push({
+        id: 'approvals',
+        label: 'Approvals Pending Review',
+        count: pendingApprovals.length,
+        icon: '⏳',
+        badgeColor: 'amber',
+        route: '/app/approvals',
+        description: `${first.quoteNumber} ${first.customerName}${pendingApprovals.length > 1 ? ` & ${pendingApprovals.length - 1} others` : ' waiting'}`,
+      });
+    }
+
+    if (riskyDeals.length > 0) {
+      const first = riskyDeals[0];
+      const healthScore = Math.max(0, 100 - (first.riskScore ?? 35));
+      list.push({
+        id: 'critical_deals',
+        label: 'Critical Deals at Risk',
+        count: riskyDeals.length,
+        icon: '🔴',
+        badgeColor: 'red',
+        route: '/app/deal-health',
+        description: `${first.name || first.customerName} health score: ${healthScore}/100`,
+      });
+    }
+
+    if (negotiationQuotes.length > 0) {
+      const first = negotiationQuotes[0];
+      list.push({
+        id: 'negotiations',
+        label: 'Customer Negotiations Active',
+        count: negotiationQuotes.length,
+        icon: '💬',
+        badgeColor: 'blue',
+        route: '/app/quotations',
+        description: `${first.customerName} active counter-proposal`,
+      });
+    }
+
+    if (overdueInvoices.length > 0) {
+      const first = overdueInvoices[0];
+      list.push({
+        id: 'overdue_invoices',
+        label: 'Overdue Receivables',
+        count: overdueInvoices.length,
+        icon: '🧾',
+        badgeColor: 'red',
+        route: '/app/invoices',
+        description: `${first.invoiceNumber} (${first.customerName}) pending payment`,
+      });
+    }
+
+    return list;
+  }, [items, approvals, deals, quotes, invoices]);
+
+  const totalCount = displayItems.reduce((acc, i) => acc + i.count, 0);
 
   if (totalCount === 0) return null;
 
@@ -79,7 +117,7 @@ export function AttentionCenter({ items = DEFAULT_ATTENTION_ITEMS }: AttentionCe
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {items.map((item) => (
+        {displayItems.map((item) => (
           <Link
             key={item.id}
             to={item.route}

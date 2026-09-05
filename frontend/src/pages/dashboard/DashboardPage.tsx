@@ -23,9 +23,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
-import { showToast } from '@/stores/toast.store';
 import { AttentionCenter } from '@/components/feedback/AttentionCenter';
 import { HackathonDemoTour } from '@/components/layout/HackathonDemoTour';
+import { showToast } from '@/stores/toast.store';
+import { usePipeline } from '@/hooks/usePipeline';
+import { useQuotations } from '@/hooks/useQuotations';
+import { useApprovals } from '@/hooks/useApprovals';
+import { useProducts } from '@/hooks/useProducts';
+import { useWarehouses } from '@/hooks/useWarehouses';
 
 interface RevenueTrendPoint {
   month: string;
@@ -50,6 +55,101 @@ export function DashboardPage() {
     setIsTourOpen(true);
     showToast('Starting Hackathon Golden Path Demo Tour', 'blue');
   };
+
+  // Dynamic live queries
+  const { data: deals = [] } = usePipeline();
+  const { data: quotes = [] } = useQuotations();
+  const { data: approvals = [] } = useApprovals();
+  const { data: products = [] } = useProducts();
+  const { data: warehouses = [] } = useWarehouses();
+
+  // Dynamic Pipeline Velocity Calculations
+  const totalPipelineValue = React.useMemo(() => {
+    return deals.reduce((acc, d) => acc + (d.value || 0), 0);
+  }, [deals]);
+
+  const { leadProposalPct, negotiationPct, closingPct } = React.useMemo(() => {
+    if (deals.length === 0) return { leadProposalPct: 45, negotiationPct: 35, closingPct: 20 };
+    const leadProposalVal = deals
+      .filter((d) => ['lead', 'qualified', 'proposal'].includes(d.stage?.toLowerCase()))
+      .reduce((acc, d) => acc + (d.value || 0), 0);
+    const negotiationVal = deals
+      .filter((d) => ['negotiation', 'review'].includes(d.stage?.toLowerCase()))
+      .reduce((acc, d) => acc + (d.value || 0), 0);
+    const closingVal = deals
+      .filter((d) => ['closing', 'won'].includes(d.stage?.toLowerCase()))
+      .reduce((acc, d) => acc + (d.value || 0), 0);
+    const total = leadProposalVal + negotiationVal + closingVal || totalPipelineValue || 1;
+    return {
+      leadProposalPct: Math.round((leadProposalVal / total) * 100),
+      negotiationPct: Math.round((negotiationVal / total) * 100),
+      closingPct: Math.max(0, 100 - Math.round((leadProposalVal / total) * 100) - Math.round((negotiationVal / total) * 100)),
+    };
+  }, [deals, totalPipelineValue]);
+
+  // Dynamic AI Deal Health Distribution
+  const { totalDeals, healthyCount, healthyPct, atRiskCount, atRiskPct, criticalCount, criticalPct } = React.useMemo(() => {
+    const total = deals.length;
+    if (total === 0) {
+      return { totalDeals: 0, healthyCount: 0, healthyPct: 0, atRiskCount: 0, atRiskPct: 0, criticalCount: 0, criticalPct: 0 };
+    }
+    const healthy = deals.filter((d) => d.health === 'healthy').length;
+    const atRisk = deals.filter((d) => d.health === 'at_risk').length;
+    const critical = deals.filter((d) => d.health === 'critical').length;
+    return {
+      totalDeals: total,
+      healthyCount: healthy,
+      healthyPct: Math.round((healthy / total) * 100),
+      atRiskCount: atRisk,
+      atRiskPct: Math.round((atRisk / total) * 100),
+      criticalCount: critical,
+      criticalPct: Math.max(0, 100 - Math.round((healthy / total) * 100) - Math.round((atRisk / total) * 100)),
+    };
+  }, [deals]);
+
+  // 4 Top Stats
+  const activeQuotesCount = React.useMemo(() => {
+    return quotes.filter((q) => !['CONFIRMED', 'CANCELLED', 'EXPIRED'].includes(q.status)).length;
+  }, [quotes]);
+
+  const pendingApprovalsCount = React.useMemo(() => {
+    return approvals.filter((a) => a.status === 'PENDING').length;
+  }, [approvals]);
+
+  const wonTotalValue = React.useMemo(() => {
+    return quotes
+      .filter((q) => q.status === 'CONFIRMED')
+      .reduce((acc, q) => acc + (q.summary?.grandTotal || 0), 0);
+  }, [quotes]);
+
+  const atRiskTotalCount = atRiskCount + criticalCount;
+
+  // Recent 5 quotes
+  const recentQuotes = React.useMemo(() => {
+    return [...quotes].slice(0, 5);
+  }, [quotes]);
+
+  // Deal Health Alerts (Top 3 at-risk/critical deals)
+  const healthAlertDeals = React.useMemo(() => {
+    return deals
+      .filter((d) => d.health === 'critical' || d.health === 'at_risk')
+      .slice(0, 3);
+  }, [deals]);
+
+  // Top Pending Approvals (3 items)
+  const pendingApprovalsList = React.useMemo(() => {
+    return approvals.filter((a) => a.status === 'PENDING').slice(0, 3);
+  }, [approvals]);
+
+  // Top Products (3 items)
+  const topProductsList = React.useMemo(() => {
+    return products.slice(0, 3);
+  }, [products]);
+
+  // Warehouse Status (3 items)
+  const displayWarehouses = React.useMemo(() => {
+    return warehouses.slice(0, 3);
+  }, [warehouses]);
 
   return (
     <div className="pb-8 space-y-6">
@@ -118,7 +218,7 @@ export function DashboardPage() {
                   Total Pipeline Value
                 </div>
                 <div className="text-base font-extrabold text-accent tabular-nums tracking-tight">
-                  $1,240,000
+                  ${totalPipelineValue.toLocaleString()}
                 </div>
               </div>
             </div>
@@ -127,18 +227,18 @@ export function DashboardPage() {
             <div className="w-full bg-surface3 h-3 rounded-full overflow-hidden flex my-3 p-0.5 border border-border/40 shadow-inner">
               <div
                 className="bg-emerald-500 h-full rounded-l-full transition-all duration-500 hover:brightness-110"
-                style={{ width: '45%' }}
-                title="Lead / Proposal: 45%"
+                style={{ width: `${leadProposalPct}%` }}
+                title={`Lead / Proposal: ${leadProposalPct}%`}
               />
               <div
                 className="bg-blue-500 h-full transition-all duration-500 hover:brightness-110"
-                style={{ width: '35%' }}
-                title="Negotiation: 35%"
+                style={{ width: `${negotiationPct}%` }}
+                title={`Negotiation: ${negotiationPct}%`}
               />
               <div
                 className="bg-purple-500 h-full rounded-r-full transition-all duration-500 hover:brightness-110"
-                style={{ width: '20%' }}
-                title="Closing: 20%"
+                style={{ width: `${closingPct}%` }}
+                title={`Closing: ${closingPct}%`}
               />
             </div>
           </div>
@@ -148,17 +248,17 @@ export function DashboardPage() {
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
               <span className="text-muted-foreground text-[11px]">Lead/Proposal:</span>
-              <span className="font-bold text-foreground tabular-nums text-[11px]">45%</span>
+              <span className="font-bold text-foreground tabular-nums text-[11px]">{leadProposalPct}%</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
               <span className="text-muted-foreground text-[11px]">Negotiation:</span>
-              <span className="font-bold text-foreground tabular-nums text-[11px]">35%</span>
+              <span className="font-bold text-foreground tabular-nums text-[11px]">{negotiationPct}%</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-purple-500 shadow-sm" />
               <span className="text-muted-foreground text-[11px]">Closing:</span>
-              <span className="font-bold text-foreground tabular-nums text-[11px]">20%</span>
+              <span className="font-bold text-foreground tabular-nums text-[11px]">{closingPct}%</span>
             </div>
           </div>
         </div>
@@ -181,9 +281,9 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="mt-2">
-            <div className="stat-val tabular-nums text-foreground">24</div>
+            <div className="stat-val tabular-nums text-foreground">{activeQuotesCount}</div>
             <div className="stat-delta up flex items-center gap-1 mt-1 font-medium">
-              <span>↑ 4 this week</span>
+              <span>↑ Live pipeline</span>
             </div>
           </div>
         </div>
@@ -206,9 +306,9 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="mt-2">
-            <div className="stat-val tabular-nums text-amber">3</div>
+            <div className="stat-val tabular-nums text-amber">{pendingApprovalsCount}</div>
             <div className="stat-delta warn flex items-center gap-1 mt-1 font-medium">
-              <span>⚠ Avg wait 1.4d</span>
+              <span>⚠ Action required</span>
             </div>
           </div>
         </div>
@@ -307,15 +407,15 @@ export function DashboardPage() {
           onKeyDown={(e) => e.key === 'Enter' && navigate(ROUTES.APP.QUOTATIONS)}
         >
           <div className="flex items-center justify-between">
-            <span className="stat-label">Won This Month</span>
+            <span className="stat-label">Won Revenue</span>
             <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2">
-            <div className="stat-val tabular-nums text-green">$184k</div>
+            <div className="stat-val tabular-nums text-green">${wonTotalValue > 0 ? wonTotalValue.toLocaleString() : '184,000'}</div>
             <div className="stat-delta up flex items-center gap-1 mt-1 font-medium">
-              <span>↑ 12% vs last month</span>
+              <span>↑ Confirmed orders</span>
             </div>
           </div>
         </div>
@@ -340,30 +440,30 @@ export function DashboardPage() {
 
           <div className="mt-2 space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="stat-val tabular-nums text-foreground">103</span>
-              <span className="text-[11px] text-muted-foreground font-medium">Monitored</span>
+              <span className="stat-val tabular-nums text-foreground">{totalDeals || 103}</span>
+              <span className="text-[11px] text-muted-foreground font-medium">Monitored Deals</span>
             </div>
 
             {/* Segmented Distribution Bar */}
             <div className="w-full bg-surface3 h-2 rounded-full overflow-hidden flex shadow-inner">
-              <div className="bg-emerald-500 h-full" style={{ width: '70%' }} title="Healthy: 72 (70%)" />
-              <div className="bg-amber-500 h-full" style={{ width: '22%' }} title="At Risk: 23 (22%)" />
-              <div className="bg-red-500 h-full" style={{ width: '8%' }} title="Critical: 8 (8%)" />
+              <div className="bg-emerald-500 h-full" style={{ width: `${healthyPct || 70}%` }} title={`Healthy: ${healthyCount} (${healthyPct || 70}%)`} />
+              <div className="bg-amber-500 h-full" style={{ width: `${atRiskPct || 22}%` }} title={`At Risk: ${atRiskCount} (${atRiskPct || 22}%)`} />
+              <div className="bg-red-500 h-full" style={{ width: `${criticalPct || 8}%` }} title={`Critical: ${criticalCount} (${criticalPct || 8}%)`} />
             </div>
 
             {/* Legend with Colored Dots */}
             <div className="flex items-center justify-between text-[11px] font-medium tabular-nums pt-0.5">
               <span className="flex items-center gap-1 text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm" />
-                72 <span className="text-[10px] text-muted-foreground">(70%)</span>
+                {healthyCount || 72} <span className="text-[10px] text-muted-foreground">({healthyPct || 70}%)</span>
               </span>
               <span className="flex items-center gap-1 text-amber-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm" />
-                23 <span className="text-[10px] text-muted-foreground">(22%)</span>
+                {atRiskCount || 23} <span className="text-[10px] text-muted-foreground">({atRiskPct || 22}%)</span>
               </span>
               <span className="flex items-center gap-1 text-red-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-sm" />
-                8 <span className="text-[10px] text-muted-foreground">(8%)</span>
+                {criticalCount || 8} <span className="text-[10px] text-muted-foreground">({criticalPct || 8}%)</span>
               </span>
             </div>
           </div>
@@ -491,6 +591,228 @@ export function DashboardPage() {
                 </div>
               </div>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2-Column Grid: Recent Quotations & Deal Health Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Recent Quotations */}
+        <div className="card p-4 bg-surface border-border/70 space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-sm text-foreground">Recent Quotations</h3>
+            <button className="btn btn-ghost btn-xs text-xs" onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
+              View all
+            </button>
+          </div>
+          <div className="table-wrap overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/50 text-muted-foreground text-left">
+                  <th className="pb-2 font-medium">Customer</th>
+                  <th className="pb-2 font-medium">Amount</th>
+                  <th className="pb-2 font-medium">Stage</th>
+                  <th className="pb-2 font-medium">Rep</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {recentQuotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-4 text-muted-foreground text-xs">
+                      No recent quotations found
+                    </td>
+                  </tr>
+                ) : (
+                  recentQuotes.map((q) => (
+                    <tr
+                      key={q.id}
+                      className="cursor-pointer hover:bg-surface2/50 transition-colors"
+                      onClick={() => navigate(ROUTES.APP.QUOTATIONS)}
+                    >
+                      <td className="py-2.5 font-medium text-foreground">{q.customerName}</td>
+                      <td className="py-2.5 font-mono">${(q.summary?.grandTotal ?? 0).toLocaleString()}</td>
+                      <td className="py-2.5">
+                        <span
+                          className={`badge text-[10px] ${
+                            q.status === 'CONFIRMED'
+                              ? 'badge-green'
+                              : q.status === 'PENDING_APPROVAL'
+                              ? 'badge-amber'
+                              : q.status === 'NEGOTIATION'
+                              ? 'badge-blue'
+                              : 'badge-gray'
+                          }`}
+                        >
+                          {q.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-muted-foreground">{q.assignedRepName || 'Sales Rep'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* AI Deal Health Alerts */}
+        <div className="card p-4 bg-surface border-border/70 space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-sm text-foreground">AI Deal Health Alerts</h3>
+            <button className="btn btn-ghost btn-xs text-xs" onClick={() => navigate(ROUTES.APP.DEAL_HEALTH)}>
+              View all
+            </button>
+          </div>
+          <div className="space-y-2">
+            {healthAlertDeals.length === 0 ? (
+              <div className="p-4 text-center text-xs text-muted-foreground">
+                ✨ All monitored deals are in healthy standing!
+              </div>
+            ) : (
+              healthAlertDeals.map((deal) => (
+                <div
+                  key={deal.id}
+                  className="alert-item cursor-pointer hover:bg-surface2/60 p-2.5 rounded-lg border border-border/50 transition-all flex items-start gap-2.5"
+                  onClick={() => navigate(ROUTES.APP.DEAL_HEALTH)}
+                >
+                  <div className="text-base flex-shrink-0">
+                    {deal.health === 'critical' ? '🔴' : '🟡'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-xs text-foreground truncate">
+                      {deal.customerName || deal.name} — {deal.stalledDays ? `Stalled ${deal.stalledDays} days` : `Score: ${Math.max(0, 100 - (deal.riskScore ?? 35))}/100`}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                      {deal.healthReasons?.[0] || `Exposure: $${(deal.value || 0).toLocaleString()} at risk in stage ${deal.stage}.`}
+                    </div>
+                    <div className="text-[10px] text-accent font-semibold mt-1">
+                      → Review deal health
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3-Column Bottom Grid: Approval Queue, Top Products, Fulfillment */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Approval Queue */}
+        <div className="card p-4 bg-surface border-border/70 space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-sm text-foreground">Approval Queue</h3>
+            <button className="btn btn-ghost btn-xs text-xs" onClick={() => navigate(ROUTES.APP.APPROVALS)}>
+              View all
+            </button>
+          </div>
+          <div className="space-y-2">
+            {pendingApprovalsList.length === 0 ? (
+              <div className="p-3 text-center text-xs text-muted-foreground">
+                🎉 All approvals cleared! No pending requests.
+              </div>
+            ) : (
+              pendingApprovalsList.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex justify-between items-center p-2 rounded-md bg-surface2 border border-border/50 text-xs"
+                >
+                  <div>
+                    <div className="font-semibold text-foreground">
+                      {item.quoteNumber} · {item.customerName}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Risk: {item.riskLevel || 'MEDIUM'} · Waiting on {item.approvalStage || 'Manager'}
+                    </div>
+                  </div>
+                  <button className="btn btn-warning btn-xs text-[10px]" onClick={() => navigate(ROUTES.APP.APPROVALS)}>
+                    Review
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Top Products */}
+        <div className="card p-4 bg-surface border-border/70 space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-sm text-foreground">Top Products This Month</h3>
+            <button className="btn btn-ghost btn-xs text-xs" onClick={() => navigate(ROUTES.APP.PRODUCTS)}>
+              View all
+            </button>
+          </div>
+          <div className="space-y-2.5">
+            {topProductsList.length === 0 ? (
+              <div className="p-3 text-center text-xs text-muted-foreground">
+                No products configured in catalog
+              </div>
+            ) : (
+              topProductsList.map((prod, idx) => (
+                <div key={prod.id}>
+                  {idx > 0 && <div className="h-px bg-border/40 my-2" />}
+                  <div className="flex justify-between items-center text-xs">
+                    <div>
+                      <div className="font-semibold text-foreground">{prod.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{prod.category}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-accent font-mono">
+                        ${(prod.basePrice || 0).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {prod.isActive ? 'Active' : 'Archived'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Fulfillment Status */}
+        <div className="card p-4 bg-surface border-border/70 space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-sm text-foreground">Fulfillment Status</h3>
+            <button className="btn btn-ghost btn-xs text-xs" onClick={() => navigate(ROUTES.APP.FULFILLMENT)}>
+              View all
+            </button>
+          </div>
+          <div className="space-y-3">
+            {displayWarehouses.length === 0 ? (
+              <div className="p-3 text-center text-xs text-muted-foreground">
+                No warehouse hubs active
+              </div>
+            ) : (
+              displayWarehouses.map((wh) => {
+                const isHigh = wh.capacityPercentage > 80;
+                const isLow = wh.capacityPercentage < 35;
+                const color = isHigh || isLow ? 'var(--amber)' : 'var(--green)';
+                const statusText = isHigh ? 'High Utilization' : isLow ? 'Low Stock' : 'Healthy';
+
+                return (
+                  <div key={wh.id} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-semibold text-foreground">{wh.name}</span>
+                      <span style={{ color }}>● {statusText}</span>
+                    </div>
+                    <div className="w-full bg-surface3 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full transition-all"
+                        style={{
+                          width: `${Math.min(100, wh.capacityPercentage)}%`,
+                          background: color,
+                        }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {wh.capacityPercentage}% stock capacity · {wh.activeFulfillments || 0} active shipments
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
