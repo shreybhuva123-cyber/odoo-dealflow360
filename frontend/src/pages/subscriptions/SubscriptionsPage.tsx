@@ -216,10 +216,10 @@ export function SubscriptionsPage() {
             />
           </div>
 
-          <Select
+          <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-[150px] h-9 text-xs bg-surface-2/40 border-border/60"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
+            className="w-[150px] h-9 text-xs bg-transparent border border-border/60 rounded-lg px-3 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -227,7 +227,7 @@ export function SubscriptionsPage() {
             <option value="paused">Paused</option>
             <option value="past_due">Past Due</option>
             <option value="cancelled">Cancelled</option>
-          </Select>
+          </select>
         </div>
 
         <div className="flex items-center gap-1 border border-border/60 rounded-lg p-0.5 bg-surface-2/40">

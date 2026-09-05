@@ -10,13 +10,19 @@ export interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <NetworkStatusBanner />
-      <TopNavbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-background/60 p-4 sm:p-6 focus:outline-none">
-          <div className="max-w-7xl mx-auto w-full">
+      {/* Sidebar - fixed left */}
+      <Sidebar />
+
+      {/* Main content area */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        {/* Top navigation bar */}
+        <TopNavbar />
+
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto bg-background/60 p-5 focus:outline-none">
+          <div className="max-w-[1400px] mx-auto w-full space-y-1">
             <Breadcrumbs />
             {children}
           </div>

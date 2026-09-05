@@ -14,6 +14,7 @@ import {
   NewDealDialog,
 } from './components';
 import { DealStage, PipelineFilterOptions, Deal } from '@/types';
+import { GitPullRequest, Plus, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 
 export function PipelinePage() {
@@ -66,24 +67,30 @@ export function PipelinePage() {
   );
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
+    <div className="space-y-5 animate-fade-in">
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
-            <span>Sales Pipeline & Deal Flow</span>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Real-time visual deal orchestration, probability weighting, and margin health monitoring
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center">
+            <GitPullRequest className="w-5 h-5 text-purple-400" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-foreground tracking-tight">
+              Sales Pipeline & Deal Flow
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Real-time visual deal orchestration, probability weighting, and margin health monitoring
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            className="btn btn-primary btn-sm font-semibold text-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-95"
             onClick={() => setIsNewDealOpen(true)}
           >
-            + New Deal
+            <Plus className="w-3.5 h-3.5" />
+            New Deal
           </button>
         </div>
       </div>
@@ -103,10 +110,10 @@ export function PipelinePage() {
 
       {/* Main Content Area (Kanban vs Table) */}
       {isDealsLoading ? (
-        <div className="card text-center py-24">
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
-          <div className="text-base font-semibold text-foreground">Loading Pipeline Deals...</div>
-          <div className="text-xs text-muted-foreground mt-1">
+        <div className="bg-card border border-border rounded-xl text-center py-20 flex flex-col items-center gap-3">
+          <Loader2 className="w-7 h-7 text-primary animate-spin" />
+          <div className="text-sm font-semibold text-foreground">Loading Pipeline Deals...</div>
+          <div className="text-xs text-muted-foreground">
             Analyzing opportunity stages, velocity, and health indicators
           </div>
         </div>

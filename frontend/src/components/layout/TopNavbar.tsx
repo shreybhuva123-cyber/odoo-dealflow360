@@ -5,12 +5,22 @@ import { ROUTES } from '@/constants/routes';
 import { showToast } from '@/stores/toast.store';
 import { DropdownMenu, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Role } from '@/types';
-import { ArrowRightLeft, Check } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Check,
+  Search,
+  RefreshCw,
+  Plus,
+  Trophy,
+  Command,
+} from 'lucide-react';
 import { useSearchStore } from '@/stores/search.store';
 import { NotificationBell } from '@/components/notifications';
 import { CommandPalette } from '@/components/search';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { HackathonDemoTour } from './HackathonDemoTour';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { cn } from '@/lib/utils';
 
 export function TopNavbar() {
   const location = useLocation();
@@ -61,34 +71,27 @@ export function TopNavbar() {
   ];
 
   return (
-    <div
-      style={{
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        padding: '0 24px',
-        height: '52px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        flexShrink: 0,
-      }}
-    >
-      <div>
-        <div className="topbar-title" style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text)' }}>
+    <div className="bg-card border-b border-border px-5 h-[52px] flex items-center gap-4 flex-shrink-0">
+      {/* Page Title */}
+      <div className="min-w-0">
+        <div className="text-[15px] font-bold text-foreground tracking-tight truncate">
           {currentMeta.title}
         </div>
-        <div className="topbar-sub" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+        <div className="text-[11px] text-muted-foreground truncate">
           {currentMeta.sub}
         </div>
       </div>
 
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
-        {/* Quick Persona Switcher for Hackathon Testing */}
+      {/* Right Actions */}
+      <div className="ml-auto flex items-center gap-2">
+        {/* Role Switcher */}
         <DropdownMenu
           trigger={
-            <button className="btn btn-ghost btn-xs" style={{ gap: '4px' }}>
-              <ArrowRightLeft className="h-3 w-3 text-blue-400" />
-              <span>Role: <strong style={{ color: 'var(--accent)' }}>{role?.replace('_', ' ')}</strong></span>
+            <button className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-border/50 transition-colors">
+              <ArrowRightLeft className="h-3 w-3 text-primary" />
+              <span>
+                Role: <strong className="text-primary">{role?.replace('_', ' ')}</strong>
+              </span>
             </button>
           }
         >
@@ -104,53 +107,72 @@ export function TopNavbar() {
               className="flex items-start justify-between py-2"
             >
               <div>
-                <p className="font-semibold text-xs" style={{ color: 'var(--text)' }}>{r.label}</p>
-                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{r.desc}</p>
+                <p className="font-semibold text-xs text-foreground">{r.label}</p>
+                <p className="text-[10px] text-muted-foreground">{r.desc}</p>
               </div>
-              {role === r.role && <Check className="h-3.5 w-3.5 text-blue-400 ml-2" />}
+              {role === r.role && <Check className="h-3.5 w-3.5 text-primary ml-2 flex-shrink-0" />}
             </DropdownMenuItem>
           ))}
         </DropdownMenu>
 
-        {/* Global Search / Command Palette Trigger */}
+        {/* Search / Command Palette */}
         <button
           type="button"
           onClick={() => openCommandPalette()}
-          className="btn btn-ghost btn-sm text-xs text-muted-foreground hover:text-foreground flex items-center gap-2 border border-border/70 bg-surface2/30 px-2.5 py-1 rounded-lg"
+          className={cn(
+            'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px]',
+            'text-muted-foreground hover:text-foreground',
+            'border border-border/50 bg-muted/30 hover:bg-accent/30',
+            'transition-colors cursor-pointer'
+          )}
           title="Open Global Search & Command Palette (Ctrl+K)"
         >
-          <span>🔍</span>
-          <span className="hidden md:inline text-[11px]">Search records...</span>
-          <kbd className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-surface3 text-[10px] font-mono border border-border/80 text-muted-foreground">
-            Ctrl+K
+          <Search className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Search records...</span>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border/60 text-muted-foreground">
+            <Command className="h-2.5 w-2.5" />K
           </kbd>
         </button>
 
-        {/* Notification Bell with unread counter & dropdown */}
+        {/* Notification Bell */}
         <NotificationBell />
 
-        {/* Hackathon Golden Path Demo Tour Trigger */}
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
+        {/* Demo Tour */}
         <button
           type="button"
           onClick={() => setIsTourOpen(true)}
-          className="btn btn-sm text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 flex items-center gap-1.5 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 transition-all active:scale-95"
           title="Open interactive 14-stage Hackathon Demo Tour Guide"
         >
-          <span>🏆</span>
+          <Trophy className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Demo Tour</span>
         </button>
 
-        <button className="btn btn-ghost btn-sm" onClick={handleReload}>
-          ↻ Reload
-        </button>
-        <button className="btn btn-primary btn-sm" onClick={handleNewQuote}>
-          + New Quote
+        {/* Reload */}
+        <button
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+          onClick={handleReload}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Reload</span>
         </button>
 
-        {/* Global Command Palette Dialog */}
+        {/* New Quote */}
+        <button
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-95"
+          onClick={handleNewQuote}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New Quote
+        </button>
+
+        {/* Command Palette Dialog */}
         <CommandPalette />
 
-        {/* Interactive Hackathon Demo Tour Modal */}
+        {/* Hackathon Demo Tour Modal */}
         <HackathonDemoTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
       </div>
     </div>

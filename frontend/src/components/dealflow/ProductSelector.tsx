@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Product } from '@/types';
 import { useProducts } from '@/hooks/useQuotations';
+import { Search, Plus, Package } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ProductSelectorProps {
   onAddProduct: (product: Product) => void;
@@ -8,7 +10,7 @@ interface ProductSelectorProps {
 }
 
 export function ProductSelector({ onAddProduct, className = '' }: ProductSelectorProps) {
-  const { data: products = [] } = useProducts();
+  const { data: products = [], isLoading } = useProducts();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -37,14 +39,15 @@ export function ProductSelector({ onAddProduct, className = '' }: ProductSelecto
   };
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={cn('space-y-3', className)}>
       {/* Search and Category Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <div style={{ position: 'relative', flex: 1 }}>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
-            className="field-input"
-            placeholder="🔍 Search products by name, SKU, or specs..."
+            className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-surface text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+            placeholder="Search products by name, SKU, or category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -54,9 +57,12 @@ export function ProductSelector({ onAddProduct, className = '' }: ProductSelecto
             <button
               key={cat}
               type="button"
-              className={`btn btn-xs ${
-                selectedCategory === cat ? 'btn-primary' : 'btn-ghost'
-              }`}
+              className={cn(
+                'px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap',
+                selectedCategory === cat
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-surface2 text-muted-foreground hover:text-foreground hover:bg-surface3 border border-border'
+              )}
               onClick={() => setSelectedCategory(cat)}
             >
               {cat}
@@ -66,79 +72,60 @@ export function ProductSelector({ onAddProduct, className = '' }: ProductSelecto
       </div>
 
       {/* Product List */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          maxHeight: '260px',
-          overflowY: 'auto',
-        }}
-      >
-        {filteredProducts.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '24px',
-              color: 'var(--text-muted)',
-              fontSize: '12px',
-            }}
-          >
+      <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+        {isLoading ? (
+          <div className="p-8 text-center text-xs text-muted-foreground bg-surface2/40 rounded-xl border border-border">
+            Loading product catalog...
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground bg-surface2/40 rounded-xl border border-border">
             No products match your search. Try adjusting keywords or category filters.
           </div>
         ) : (
           filteredProducts.map((p) => (
             <div
               key={p.id}
-              style={{
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-              }}
+              className="p-3 rounded-xl border border-border bg-surface hover:bg-surface2/60 transition-all flex items-center justify-between gap-3 shadow-sm group"
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      fontSize: '12.5px',
-                      color: 'var(--text)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {p.name}
-                  </span>
-                  <span className={`badge ${getCategoryBadgeClass(p.category)}`} style={{ fontSize: '9px' }}>
-                    {p.category}
-                  </span>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                  <Package className="w-4 h-4" />
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {p.sku} · <span style={{ color: 'var(--green)' }}>● In Stock</span> · Max Disc: {p.maxAllowableDiscountPct}%
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs text-foreground truncate">
+                      {p.name}
+                    </span>
+                    <span className={cn('badge text-[9px]', getCategoryBadgeClass(p.category))}>
+                      {p.category}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[10px]">{p.sku}</span>
+                    <span>·</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">● In Stock</span>
+                    <span>·</span>
+                    <span>Max Disc: {p.maxAllowableDiscountPct}%</span>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, fontSize: '13px', color: 'var(--accent)' }}>
-                    ${p.basePrice.toLocaleString()}{' '}
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 400 }}>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="text-right">
+                  <div className="font-bold text-xs text-primary font-mono">
+                    ${p.basePrice.toLocaleString()}
+                    <span className="text-[10px] text-muted-foreground font-normal ml-0.5">
                       {p.category === 'Subscription' ? '/mo' : ''}
                     </span>
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-primary btn-xs"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-95 cursor-pointer"
                   onClick={() => onAddProduct(p)}
                 >
-                  + Add
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
                 </button>
               </div>
             </div>

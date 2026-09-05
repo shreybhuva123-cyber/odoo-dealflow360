@@ -99,12 +99,12 @@ export function CommandPalette() {
       onClick={closeCommandPalette}
     >
       <div
-        className="bg-surface border border-border/80 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-100"
+        className="bg-popover text-popover-foreground border border-border rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-100"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search Input Bar */}
-        <div className="relative p-4 border-b border-border/70 flex items-center gap-3 bg-surface2/20">
+        <div className="relative p-4 border-b border-border flex items-center gap-3 bg-muted/30">
           <span className="text-muted-foreground text-base">🔍</span>
           <input
             ref={inputRef}
@@ -121,12 +121,12 @@ export function CommandPalette() {
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-surface3"
+              className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted"
             >
               Clear
             </button>
           )}
-          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface3 text-muted-foreground border border-border/60">
+          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted text-muted-foreground border border-border/60">
             ESC
           </span>
         </div>
@@ -167,7 +167,7 @@ export function CommandPalette() {
                     className={`px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between text-xs transition-colors ${
                       isSelected
                         ? 'bg-accent text-accent-foreground font-semibold shadow-sm'
-                        : 'text-foreground hover:bg-surface2/60'
+                        : 'text-foreground hover:bg-muted/50'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -180,7 +180,7 @@ export function CommandPalette() {
                         className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
                           isSelected
                             ? 'bg-accent-foreground/20 text-accent-foreground'
-                            : 'bg-surface3 text-muted-foreground'
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {action.shortcut}
@@ -199,7 +199,7 @@ export function CommandPalette() {
                   className={`px-3 py-2.5 rounded-lg cursor-pointer flex items-center justify-between text-xs transition-colors ${
                     isSelected
                       ? 'bg-accent text-accent-foreground font-semibold shadow-sm'
-                      : 'text-foreground hover:bg-surface2/60'
+                      : 'text-foreground hover:bg-muted/50'
                   }`}
                 >
                   <div className="min-w-0 flex-1 pr-2">
@@ -208,7 +208,7 @@ export function CommandPalette() {
                         className={`text-[9px] font-mono px-1.5 py-0.2 rounded uppercase ${
                           isSelected
                             ? 'bg-accent-foreground/20 text-accent-foreground font-bold'
-                            : 'bg-surface3 text-muted-foreground'
+                            : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {res.type}
@@ -229,7 +229,7 @@ export function CommandPalette() {
                       className={`shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded ${
                         isSelected
                           ? 'bg-accent-foreground/20 text-accent-foreground'
-                          : 'bg-surface3 text-muted-foreground'
+                          : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {res.badge}
@@ -242,19 +242,19 @@ export function CommandPalette() {
         </div>
 
         {/* Footer Shortcut Hints */}
-        <div className="p-2.5 border-t border-border/70 bg-surface2/30 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="p-2.5 border-t border-border bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-surface3 border border-border/60 text-[10px] font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 text-[10px] font-mono">
                 ↑
               </kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-surface3 border border-border/60 text-[10px] font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 text-[10px] font-mono">
                 ↓
               </kbd>
               <span>to navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-surface3 border border-border/60 text-[10px] font-mono">
+              <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 text-[10px] font-mono">
                 ↵
               </kbd>
               <span>to select</span>

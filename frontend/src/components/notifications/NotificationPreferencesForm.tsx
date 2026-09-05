@@ -4,6 +4,7 @@ import {
   useUpdateNotificationPreferences,
 } from '@/hooks/useNotifications';
 import { NotificationPreferences } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface NotificationPreferencesFormProps {
   onSaved?: () => void;
@@ -161,11 +162,12 @@ export function NotificationPreferencesForm({ onSaved }: NotificationPreferences
           ].map((mode) => (
             <label
               key={mode.id}
-              className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
+              className={cn(
+                'p-3.5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between shadow-sm',
                 formData.digestFrequency === mode.id
-                  ? 'border-accent bg-accent/5 ring-1 ring-accent'
-                  : 'border-border/60 hover:bg-surface2/40'
-              }`}
+                  ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                  : 'border-border bg-surface hover:bg-surface2/60'
+              )}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold text-foreground">{mode.label}</span>
@@ -180,7 +182,7 @@ export function NotificationPreferencesForm({ onSaved }: NotificationPreferences
                       digestFrequency: mode.id as any,
                     })
                   }
-                  className="radio radio-xs text-accent"
+                  className="w-4 h-4 text-primary accent-primary cursor-pointer"
                 />
               </div>
               <span className="text-[11px] text-muted-foreground">{mode.desc}</span>

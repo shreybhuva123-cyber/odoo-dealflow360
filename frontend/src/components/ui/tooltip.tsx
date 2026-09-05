@@ -1,43 +1,66 @@
 import * as React from 'react';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { cn } from '@/lib/utils';
 
-export interface TooltipProps {
-  content: React.ReactNode;
-  children: React.ReactNode;
+const TooltipProvider = TooltipPrimitive.Provider;
+TooltipProvider.displayName = TooltipPrimitive.Provider.displayName;
+
+export interface TooltipProps
+  extends React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root> {
+  content?: React.ReactNode;
   side?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
 }
 
-export function Tooltip({ content, children, side = 'top', className }: TooltipProps) {
-  const [visible, setVisible] = React.useState(false);
-
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-1.5',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-1.5',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-1.5',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-1.5',
-  };
-
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      onFocus={() => setVisible(true)}
-      onBlur={() => setVisible(false)}
-    >
-      {children}
-      {visible && (
-        <div
-          className={cn(
-            'absolute z-50 whitespace-nowrap rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 shadow-md animate-in fade-in-0 zoom-in-95 pointer-events-none',
-            positionClasses[side],
-            className
-          )}
-        >
+const Tooltip: React.FC<TooltipProps> = ({
+  content,
+  side = 'top',
+  className,
+  children,
+  ...props
+}) => {
+  if (content) {
+    return (
+      <TooltipPrimitive.Root {...props}>
+        <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
+        <TooltipContent side={side} className={className}>
           {content}
-        </div>
+        </TooltipContent>
+      </TooltipPrimitive.Root>
+    );
+  }
+  return <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>;
+};
+Tooltip.displayName = TooltipPrimitive.Root.displayName || 'Tooltip';
+
+const TooltipTrigger = TooltipPrimitive.Trigger;
+TooltipTrigger.displayName = TooltipPrimitive.Trigger.displayName;
+
+const TooltipPortal = TooltipPrimitive.Portal;
+TooltipPortal.displayName = TooltipPrimitive.Portal.displayName;
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        'z-50 overflow-hidden rounded-md border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        className
       )}
-    </div>
-  );
-}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+));
+TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+
+export {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+  TooltipPortal,
+};

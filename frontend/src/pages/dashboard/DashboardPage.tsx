@@ -1,331 +1,496 @@
-import React from 'react';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts';
+import {
+  TrendingUp,
+  Clock,
+  DollarSign,
+  FileText,
+  GitPullRequest,
+  CheckCircle,
+  BarChart3,
+  ArrowUpRight,
+  Activity,
+  Zap,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ROUTES } from '@/constants/routes';
 import { showToast } from '@/stores/toast.store';
 import { AttentionCenter } from '@/components/feedback/AttentionCenter';
 import { HackathonDemoTour } from '@/components/layout/HackathonDemoTour';
 
+interface RevenueTrendPoint {
+  month: string;
+  revenue: number;
+  target: number;
+}
+
+const REVENUE_TREND_DATA: RevenueTrendPoint[] = [
+  { month: 'Oct', revenue: 145000, target: 140000 },
+  { month: 'Nov', revenue: 172000, target: 155000 },
+  { month: 'Dec', revenue: 198000, target: 180000 },
+  { month: 'Jan', revenue: 185000, target: 175000 },
+  { month: 'Feb', revenue: 215000, target: 190000 },
+  { month: 'Mar', revenue: 248000, target: 210000 },
+];
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [isTourOpen, setIsTourOpen] = React.useState(false);
 
+  const handleStartTour = () => {
+    setIsTourOpen(true);
+    showToast('Starting Hackathon Golden Path Demo Tour', 'blue');
+  };
+
   return (
-    <div style={{ padding: '0 0 24px 0' }} className="space-y-5">
-      {/* Executive Welcome Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border/70 bg-gradient-to-r from-surface via-surface to-accent/10 shadow-sm">
-        <div>
-          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <span>Good morning, Sales Operations Team</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-              ● All Systems Operational
-            </span>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Here's what needs your attention across your pipeline, approvals, and fulfillment today.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsTourOpen(true)}
-          className="btn btn-primary btn-sm text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto shadow-md"
+    <div className="pb-8 space-y-6">
+      {/* Bento Grid Architecture */}
+      <div className="bento-grid">
+        {/* 1. Welcome Banner (span 4 cols) */}
+        <div
+          className={cn(
+            'bento-card bento-span-4 p-5',
+            'bg-gradient-to-r from-surface via-surface2/60 to-blue-950/25',
+            'border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4'
+          )}
         >
-          <span>🏆</span>
-          <span>Start Hackathon Golden Path Demo</span>
-        </button>
-      </div>
-
-      {/* Pipeline Health vs Deal Health Summary Strip */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Pipeline Distribution */}
-        <div className="card p-3.5 bg-surface border-border/70 space-y-2">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-foreground">Pipeline Velocity Health</span>
-            <span className="font-mono text-accent font-bold">$1,240,000 Total Value</span>
-          </div>
-          <div className="w-full bg-surface3 h-2 rounded-full overflow-hidden flex">
-            <div className="bg-emerald-500 h-full" style={{ width: '45%' }} title="Qualified / Proposal (45%)" />
-            <div className="bg-blue-500 h-full" style={{ width: '35%' }} title="Negotiation (35%)" />
-            <div className="bg-amber-500 h-full" style={{ width: '20%' }} title="Closing / Won (20%)" />
-          </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Lead/Proposal: 45%</span>
-            <span>Negotiation: 35%</span>
-            <span>Closing: 20%</span>
-          </div>
-        </div>
-
-        {/* Deal Health Distribution */}
-        <div className="card p-3.5 bg-surface border-border/70 space-y-2">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-foreground">AI Deal Health Distribution</span>
-            <span className="text-[11px] text-muted-foreground font-mono">103 Monitored Deals</span>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-              <span>🟢</span>
-              <span>Healthy: 72 (70%)</span>
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl font-bold text-foreground tracking-tight">
+                Good morning, Sales Operations Team
+              </h1>
+              <span className="badge badge-green text-xs font-semibold py-0.5 px-2 flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>All Systems Operational</span>
+              </span>
             </div>
-            <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
-              <span>🟡</span>
-              <span>At Risk: 23 (22%)</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-red-400 font-semibold">
-              <span>🔴</span>
-              <span>Critical: 8 (8%)</span>
-            </div>
+            <p className="text-xs text-muted-foreground max-w-2xl">
+              Here's what needs your attention across your pipeline, approvals, and fulfillment today.
+              Monitor high-priority bottlenecks and accelerate deal closures.
+            </p>
           </div>
-          <div className="w-full bg-surface3 h-2 rounded-full overflow-hidden flex">
-            <div className="bg-emerald-500 h-full" style={{ width: '70%' }} />
-            <div className="bg-amber-500 h-full" style={{ width: '22%' }} />
-            <div className="bg-red-500 h-full" style={{ width: '8%' }} />
-          </div>
-        </div>
-      </div>
 
-      {/* 4 Stat Cards */}
-      <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-        <div className="stat-card">
-          <div className="stat-label">Active Quotes</div>
-          <div className="stat-val">24</div>
-          <div className="stat-delta up">↑ 4 this week</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Pending Approval</div>
-          <div className="stat-val text-amber">3</div>
-          <div className="stat-delta warn">⚠ Avg wait 1.4d</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Won This Month</div>
-          <div className="stat-val text-green">$184k</div>
-          <div className="stat-delta up">↑ 12% vs last month</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">At-Risk Deals</div>
-          <div className="stat-val text-red">2</div>
-          <div className="stat-delta down">↓ Action needed</div>
-        </div>
-      </div>
-
-      {/* Real-Time Attention Center Triage Widget */}
-      <AttentionCenter />
-
-      {/* 2-Column Grid */}
-      <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        {/* Recent Quotations */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">Recent Quotations</div>
-            <button className="btn btn-ghost btn-xs" onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
-              View all
+          <div className="flex items-center gap-3 self-start md:self-auto flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleStartTour}
+              className="btn btn-primary btn-sm text-xs font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all active:scale-95"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+              <span>Start Hackathon Golden Path Demo</span>
             </button>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Amount</th>
-                  <th>Stage</th>
-                  <th>Rep</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
-                  <td className="td-bold">Acme Corp</td>
-                  <td>$42,500</td>
-                  <td><span className="badge badge-amber">Pending Approval</span></td>
-                  <td className="td-muted">A. Morgan</td>
-                </tr>
-                <tr onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
-                  <td className="td-bold">Beta Industries</td>
-                  <td>$18,200</td>
-                  <td><span className="badge badge-green">Approved</span></td>
-                  <td className="td-muted">S. Patel</td>
-                </tr>
-                <tr onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
-                  <td className="td-bold">Vertex LLC</td>
-                  <td>$91,000</td>
-                  <td><span className="badge badge-blue">Negotiation</span></td>
-                  <td className="td-muted">A. Morgan</td>
-                </tr>
-                <tr onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
-                  <td className="td-bold">NovaTech</td>
-                  <td>$7,800</td>
-                  <td><span className="badge badge-green">Confirmed</span></td>
-                  <td className="td-muted">J. Liu</td>
-                </tr>
-                <tr onClick={() => navigate(ROUTES.APP.QUOTATIONS)}>
-                  <td className="td-bold">CloudBase Co</td>
-                  <td>$33,100</td>
-                  <td><span className="badge badge-gray">Draft</span></td>
-                  <td className="td-muted">A. Morgan</td>
-                </tr>
-              </tbody>
-            </table>
+        </div>
+
+        {/* 2. Pipeline Velocity (span 2 cols) */}
+        <div
+          className={cn(
+            'bento-card bento-span-2 flex flex-col justify-between cursor-pointer group',
+            'hover:border-blue-500/40 bg-gradient-to-br from-surface to-surface2/40'
+          )}
+          onClick={() => navigate(ROUTES.APP.PIPELINE)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(ROUTES.APP.PIPELINE)}
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-400 group-hover:scale-110 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-sm">
+                  <GitPullRequest className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="stat-label text-[11px]">Pipeline Velocity</h3>
+                  <div className="text-xs text-foreground font-semibold">Active Deal Stages</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                  Total Pipeline Value
+                </div>
+                <div className="text-base font-extrabold text-accent tabular-nums tracking-tight">
+                  $1,240,000
+                </div>
+              </div>
+            </div>
+
+            {/* Segmented Progress Bar */}
+            <div className="w-full bg-surface3 h-3 rounded-full overflow-hidden flex my-3 p-0.5 border border-border/40 shadow-inner">
+              <div
+                className="bg-emerald-500 h-full rounded-l-full transition-all duration-500 hover:brightness-110"
+                style={{ width: '45%' }}
+                title="Lead / Proposal: 45%"
+              />
+              <div
+                className="bg-blue-500 h-full transition-all duration-500 hover:brightness-110"
+                style={{ width: '35%' }}
+                title="Negotiation: 35%"
+              />
+              <div
+                className="bg-purple-500 h-full rounded-r-full transition-all duration-500 hover:brightness-110"
+                style={{ width: '20%' }}
+                title="Closing: 20%"
+              />
+            </div>
+          </div>
+
+          {/* Stage breakdown legend */}
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
+              <span className="text-muted-foreground text-[11px]">Lead/Proposal:</span>
+              <span className="font-bold text-foreground tabular-nums text-[11px]">45%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
+              <span className="text-muted-foreground text-[11px]">Negotiation:</span>
+              <span className="font-bold text-foreground tabular-nums text-[11px]">35%</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-purple-500 shadow-sm" />
+              <span className="text-muted-foreground text-[11px]">Closing:</span>
+              <span className="font-bold text-foreground tabular-nums text-[11px]">20%</span>
+            </div>
           </div>
         </div>
 
-        {/* Deal Health Alerts */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">Deal Health Alerts</div>
-            <button className="btn btn-ghost btn-xs" onClick={() => navigate(ROUTES.APP.DEAL_HEALTH)}>
-              View all
+        {/* 3. Active Quotes (1 col) */}
+        <div
+          className={cn(
+            'bento-card flex flex-col justify-between cursor-pointer group',
+            'hover:border-blue-500/40 bg-gradient-to-br from-surface to-blue-950/10'
+          )}
+          onClick={() => navigate(ROUTES.APP.QUOTATIONS)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(ROUTES.APP.QUOTATIONS)}
+        >
+          <div className="flex items-center justify-between">
+            <span className="stat-label">Active Quotes</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-400 group-hover:scale-110 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-sm">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="stat-val tabular-nums text-foreground">24</div>
+            <div className="stat-delta up flex items-center gap-1 mt-1 font-medium">
+              <span>↑ 4 this week</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Pending Approval (1 col) */}
+        <div
+          className={cn(
+            'bento-card flex flex-col justify-between cursor-pointer group',
+            'hover:border-amber-500/40 bg-gradient-to-br from-surface to-amber-950/10'
+          )}
+          onClick={() => navigate(ROUTES.APP.APPROVALS)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(ROUTES.APP.APPROVALS)}
+        >
+          <div className="flex items-center justify-between">
+            <span className="stat-label">Pending Approval</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all shadow-sm">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="stat-val tabular-nums text-amber">3</div>
+            <div className="stat-delta warn flex items-center gap-1 mt-1 font-medium">
+              <span>⚠ Avg wait 1.4d</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Revenue Trend (span 2 cols, row span 2) */}
+        <div
+          className={cn(
+            'bento-card bento-span-2 bento-row-2 flex flex-col justify-between',
+            'bg-gradient-to-b from-surface via-surface to-blue-950/15'
+          )}
+        >
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-sm">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="stat-label text-[11px]">Revenue Trend</h3>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span className="text-xl font-extrabold text-foreground tabular-nums tracking-tight">
+                    $1.24M
+                  </span>
+                  <span className="badge badge-green text-[10px] font-semibold flex items-center gap-0.5">
+                    <TrendingUp className="w-3 h-3" />
+                    +18.4% YoY
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span className="badge badge-gray text-[10px] font-semibold">Last 6 Months</span>
+          </div>
+
+          <div className="w-full flex-1 min-h-[200px] pt-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={REVENUE_TREND_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueBentoGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.45} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(42,54,82,0.5)" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#94A3B8"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={{ stroke: '#2A3652' }}
+                />
+                <YAxis
+                  stroke="#94A3B8"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v: number) => `$${v / 1000}k`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#111827',
+                    borderColor: '#2A3652',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#F3F4F6',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+                  }}
+                  formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Revenue']}
+                  labelStyle={{ color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#3B82F6"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#revenueBentoGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+            <span>Forecast Target: $260k/mo</span>
+            <span className="text-emerald-400 font-semibold tabular-nums">95.4% Target Realization</span>
+          </div>
+        </div>
+
+        {/* 6. Won This Month (1 col) */}
+        <div
+          className={cn(
+            'bento-card flex flex-col justify-between cursor-pointer group',
+            'hover:border-emerald-500/40 bg-gradient-to-br from-surface to-emerald-950/10'
+          )}
+          onClick={() => navigate(ROUTES.APP.QUOTATIONS)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(ROUTES.APP.QUOTATIONS)}
+        >
+          <div className="flex items-center justify-between">
+            <span className="stat-label">Won This Month</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="stat-val tabular-nums text-green">$184k</div>
+            <div className="stat-delta up flex items-center gap-1 mt-1 font-medium">
+              <span>↑ 12% vs last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 7. Deal Health (1 col) */}
+        <div
+          className={cn(
+            'bento-card flex flex-col justify-between cursor-pointer group',
+            'hover:border-purple-500/40 bg-gradient-to-br from-surface to-purple-950/10'
+          )}
+          onClick={() => navigate(ROUTES.APP.DEAL_HEALTH)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(ROUTES.APP.DEAL_HEALTH)}
+        >
+          <div className="flex items-center justify-between">
+            <span className="stat-label">Deal Health</span>
+            <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400 group-hover:scale-110 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-sm">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="mt-2 space-y-2">
+            <div className="flex items-baseline justify-between">
+              <span className="stat-val tabular-nums text-foreground">103</span>
+              <span className="text-[11px] text-muted-foreground font-medium">Monitored</span>
+            </div>
+
+            {/* Segmented Distribution Bar */}
+            <div className="w-full bg-surface3 h-2 rounded-full overflow-hidden flex shadow-inner">
+              <div className="bg-emerald-500 h-full" style={{ width: '70%' }} title="Healthy: 72 (70%)" />
+              <div className="bg-amber-500 h-full" style={{ width: '22%' }} title="At Risk: 23 (22%)" />
+              <div className="bg-red-500 h-full" style={{ width: '8%' }} title="Critical: 8 (8%)" />
+            </div>
+
+            {/* Legend with Colored Dots */}
+            <div className="flex items-center justify-between text-[11px] font-medium tabular-nums pt-0.5">
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm" />
+                72 <span className="text-[10px] text-muted-foreground">(70%)</span>
+              </span>
+              <span className="flex items-center gap-1 text-amber-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm" />
+                23 <span className="text-[10px] text-muted-foreground">(22%)</span>
+              </span>
+              <span className="flex items-center gap-1 text-red-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-sm" />
+                8 <span className="text-[10px] text-muted-foreground">(8%)</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 8. Attention Center (span 2 cols) */}
+        <div
+          className={cn(
+            'bento-card bento-span-2 p-4 flex flex-col justify-between',
+            '[&_.card]:border-0 [&_.card]:bg-transparent [&_.card]:p-0 [&_.card]:mb-0 lg:[&_.grid]:grid-cols-2'
+          )}
+        >
+          <AttentionCenter />
+        </div>
+
+        {/* 9. Quick Actions (span 2 cols) */}
+        <div className="bento-card bento-span-2 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-accent/20 text-accent flex items-center justify-center">
+                <Zap className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="stat-label text-[11px]">Quick Actions</h3>
+            </div>
+            <span className="text-[11px] text-muted-foreground font-medium">Frequent Operations</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 flex-1">
+            {/* Action 1: New Quote */}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.APP.QUOTATION_NEW)}
+              className={cn(
+                'p-3 rounded-xl border border-border/70 bg-surface2/40',
+                'hover:bg-surface2 hover:border-accent/50 transition-all text-left group flex flex-col justify-between'
+              )}
+            >
+              <div className="flex items-center justify-between w-full mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all shadow-sm">
+                  <FileText className="w-3.5 h-3.5" />
+                </div>
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">
+                  New Quote
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Draft custom quotation
+                </div>
+              </div>
             </button>
-          </div>
-          <div className="card-body">
-            <div className="alert-item" onClick={() => navigate(ROUTES.APP.DEAL_HEALTH)}>
-              <div className="alert-icon" style={{ fontSize: '16px' }}>🔴</div>
-              <div className="alert-body">
-                <div className="alert-title" style={{ fontWeight: 600, fontSize: '12px' }}>Vertex LLC — Stalled 9 days</div>
-                <div className="alert-detail" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  No activity since customer portal viewed. $91k at risk.
-                </div>
-                <div className="alert-action" style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 600, marginTop: '4px' }}>
-                  → Send nudge
-                </div>
-              </div>
-            </div>
 
-            <div className="alert-item" onClick={() => navigate(ROUTES.APP.APPROVALS)}>
-              <div className="alert-icon" style={{ fontSize: '16px' }}>🟡</div>
-              <div className="alert-body">
-                <div className="alert-title" style={{ fontWeight: 600, fontSize: '12px' }}>Acme Corp — Discount anomaly</div>
-                <div className="alert-detail" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  22% applied vs 15% Gold ceiling. Blended risk: HIGH.
+            {/* Action 2: View Pipeline */}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.APP.PIPELINE)}
+              className={cn(
+                'p-3 rounded-xl border border-border/70 bg-surface2/40',
+                'hover:bg-surface2 hover:border-accent/50 transition-all text-left group flex flex-col justify-between'
+              )}
+            >
+              <div className="flex items-center justify-between w-full mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-all shadow-sm">
+                  <GitPullRequest className="w-3.5 h-3.5" />
                 </div>
-                <div className="alert-action" style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 600, marginTop: '4px' }}>
-                  → Review quote
-                </div>
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </div>
-            </div>
-
-            <div className="alert-item" onClick={() => navigate(ROUTES.APP.FULFILLMENT)}>
-              <div className="alert-icon" style={{ fontSize: '16px' }}>🟠</div>
-              <div className="alert-body">
-                <div className="alert-title" style={{ fontWeight: 600, fontSize: '12px' }}>NovaTech — Partial backorder</div>
-                <div className="alert-detail" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  12 units pending from East Depot. Est. arrival 3 days.
-                </div>
-                <div className="alert-action" style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 600, marginTop: '4px' }}>
-                  → Manage fulfillment
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3-Column Bottom Grid */}
-      <div className="grid-3 mt-16" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
-        {/* Approval Queue */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Approval Queue</div></div>
-          <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface2)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '12px' }}>Q-1042 · Acme Corp</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Risk: HIGH · Waiting on Sales Mgr</div>
-                </div>
-                <button className="btn btn-warning btn-xs" onClick={() => navigate(ROUTES.APP.APPROVALS)}>Review</button>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface2)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '12px' }}>Q-1039 · Vertex LLC</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Risk: MEDIUM · Waiting on Finance</div>
-                </div>
-                <button className="btn btn-warning btn-xs" onClick={() => navigate(ROUTES.APP.APPROVALS)}>Review</button>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--surface2)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '12px' }}>Q-1035 · PeakSoft</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Risk: LOW · Waiting on Sales Mgr</div>
-                </div>
-                <button className="btn btn-warning btn-xs" onClick={() => navigate(ROUTES.APP.APPROVALS)}>Review</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Products This Month */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Top Products This Month</div></div>
-          <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '12px' }}>ProLaptop X1</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Hardware</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--accent)' }}>$48,000</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>32 units</div>
-                </div>
-              </div>
-              <div style={{ height: '1px', background: 'var(--border)' }}></div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '12px' }}>CloudBase Pro Plan</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Subscription</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--accent)' }}>$28,800</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>18 subs</div>
-                </div>
-              </div>
-              <div style={{ height: '1px', background: 'var(--border)' }}></div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '12px' }}>Setup & Deploy Svc</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Service</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--accent)' }}>$16,200</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>9 projects</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fulfillment Status */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Fulfillment Status</div></div>
-          <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 700 }}>Main Warehouse</span>
-                  <span style={{ color: 'var(--green)' }}>● Healthy</span>
+                <div className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">
+                  View Pipeline
                 </div>
-                <div className="wh-bar"><div className="wh-fill" style={{ width: '72%', background: 'var(--green)' }}></div></div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>72% stock capacity · 6 active shipments</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Manage deal stages
+                </div>
               </div>
+            </button>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 700 }}>East Depot</span>
-                  <span style={{ color: 'var(--amber)' }}>● Low Stock</span>
+            {/* Action 3: Approvals */}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.APP.APPROVALS)}
+              className={cn(
+                'p-3 rounded-xl border border-border/70 bg-surface2/40',
+                'hover:bg-surface2 hover:border-accent/50 transition-all text-left group flex flex-col justify-between'
+              )}
+            >
+              <div className="flex items-center justify-between w-full mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-all shadow-sm">
+                  <CheckCircle className="w-3.5 h-3.5" />
                 </div>
-                <div className="wh-bar"><div className="wh-fill" style={{ width: '28%', background: 'var(--amber)' }}></div></div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>28% stock capacity · 2 backorders pending</div>
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </div>
+              <div>
+                <div className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">
+                  Approvals
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Review quote approvals
+                </div>
+              </div>
+            </button>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 700 }}>West Hub</span>
-                  <span style={{ color: 'var(--green)' }}>● Healthy</span>
+            {/* Action 4: Reports */}
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.APP.REPORTS)}
+              className={cn(
+                'p-3 rounded-xl border border-border/70 bg-surface2/40',
+                'hover:bg-surface2 hover:border-accent/50 transition-all text-left group flex flex-col justify-between'
+              )}
+            >
+              <div className="flex items-center justify-between w-full mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
+                  <BarChart3 className="w-3.5 h-3.5" />
                 </div>
-                <div className="wh-bar"><div className="wh-fill" style={{ width: '55%', background: 'var(--green)' }}></div></div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>55% stock capacity · 3 active shipments</div>
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </div>
-            </div>
+              <div>
+                <div className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">
+                  Reports
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Analytics & metrics
+                </div>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -335,3 +500,5 @@ export function DashboardPage() {
     </div>
   );
 }
+
+DashboardPage.displayName = 'DashboardPage';
