@@ -1,0 +1,1 @@
+import{j as o}from"./index-Cq1VXxLt.js";import{ApprovalDetailPage as r}from"./ApprovalDetailPage-BNolRogL.js";import"./ApprovalStatusBadge-BM83Vfh5.js";import"./useMutation-D8cNMcdk.js";import"./useQuotations-C7RQpFiN.js";function e(){return o.jsx(r,{})}export{e as QuotationApprovalPage};
