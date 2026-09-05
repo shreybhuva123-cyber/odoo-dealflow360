@@ -1937,3 +1937,30 @@ odoo-dealflow360/
   - **109/109 JavaScript files verified** with `npm run lint` (0 errors).
   - **17/17 smoke test steps verified** with `npm run smoke` (100% success).
 
+---
+
+## Frontend Dynamic Data Architecture Migration & Offline Resilience
+- **Dynamic Reactive Triage & Attention Center (`AttentionCenter.tsx`)**:
+  - Replaced hardcoded dummy triage items with live reactive subscriptions to `useApprovals`, `usePipeline`, `useQuotations`, and `useInvoices`.
+  - Dynamically calculates pending approval counts and top waiting quote, high-risk/critical deals, active negotiation count, and overdue invoice receivables with direct routing.
+- **Dynamic Executive Dashboard (`DashboardPage.tsx`)**:
+  - Replaced static summary numbers, hardcoded quotation table rows, mock alerts, static approval queue, dummy product listings, and static warehouse indicators.
+  - Dynamically computes total pipeline value and velocity breakdowns (Lead/Proposal %, Negotiation %, Closing %).
+  - Computes live AI deal health distribution (Healthy %, At Risk %, Critical %) from actual monitored deals.
+  - Replaced static quotation table with dynamic real-time map of recent quotes with responsive stage badges and amounts.
+  - Replaced static alerts with live critical/at-risk deal notifications with real risk reasons and direct deep links.
+  - Dynamically renders live pending approvals, active product catalog listings, and real warehouse capacity/utilization bars.
+- **Dynamic Customer Accounts & Credit Risk Engine (`CustomersPage.tsx`, `useCustomers.ts`, `customers.api.ts`)**:
+  - Replaced static `MOCK_CUSTOMERS` with resilient TanStack Query cache backed by `dealflow_customers_v2` localStorage persistence and API synchronization.
+  - Features dynamic total credit limit & available credit aggregations, instant client-side search, tier filtering (Gold, Silver, Bronze), and `TableSkeleton` loading states.
+- **Dynamic Pipeline Analytics & Margin Reporting Engine (`ReportsPage.tsx`, `useReports.ts`, `reports.api.ts`)**:
+  - Replaced frozen `MOCK_REPORT_SUMMARY` with dynamic pipeline aggregation calculating total pipeline value, weighted win expectancy, live win rate %, and stage distributions directly from active quotations and deals.
+- **Backend API & Environment Alignment**:
+  - Configured `frontend/.env` with `VITE_API_BASE_URL=http://localhost:5000/api` aligning with the Node.js/Express service.
+  - Provided graceful fallback in API services (`client.ts`) allowing seamless dual-mode execution (direct Node.js backend integration or local offline persistence).
+- **Verification & Test Status**:
+  - **153/153 Python tests pass natively with 0 errors**.
+  - **28/28 Backend unit tests pass natively with 0 errors**.
+  - **113/113 Backend JavaScript files verified** with `npm run lint`.
+  - **Frontend production build succeeds with 0 errors** (`tsc -b && vite build`).
+

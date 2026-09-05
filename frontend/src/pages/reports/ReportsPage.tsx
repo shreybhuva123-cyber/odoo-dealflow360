@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { MOCK_REPORT_SUMMARY } from '@/services/api/reports.api';
+import { usePipelineReport } from '@/hooks/useReports';
 import { formatCurrency } from '@/utils/formatters';
 import { Link } from 'react-router-dom';
 import {
@@ -27,8 +27,17 @@ import {
 } from 'lucide-react';
 
 export function ReportsPage() {
-  const data = MOCK_REPORT_SUMMARY;
-  const [activeSection, setActiveSection] = useState<'all' | 'pipeline' | 'risk' | 'revenue'>('all');
+  const { data: reportData, isLoading } = usePipelineReport();
+
+  const data = reportData || {
+    totalPipelineValue: 0,
+    weightedValue: 0,
+    dealCount: 0,
+    winRatePct: 0,
+    avgDealCycleDays: 0,
+    stageDistribution: [],
+    marginTrend: [],
+  };
 
   const reportModules = [
     {
@@ -37,7 +46,7 @@ export function ReportsPage() {
       icon: Layers,
       color: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
       link: '/app/pipeline',
-      stat: '68.4% Win Rate',
+      stat: `${data.winRatePct}% Win Rate`,
     },
     {
       title: 'Deal Health & Anomaly Surveillance',
@@ -45,7 +54,7 @@ export function ReportsPage() {
       icon: ShieldAlert,
       color: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
       link: '/app/deal-health',
-      stat: '4 Critical Deals',
+      stat: `${data.dealCount} Total Deals`,
     },
     {
       title: 'Revenue & Cash Realization',
@@ -53,7 +62,7 @@ export function ReportsPage() {
       icon: Receipt,
       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
       link: '/app/billing',
-      stat: '₹42.8L Collected',
+      stat: formatCurrency(data.weightedValue),
     },
     {
       title: 'Approval Turnaround SLA',
@@ -61,7 +70,7 @@ export function ReportsPage() {
       icon: Clock,
       color: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
       link: '/app/approvals',
-      stat: '1.4d Avg SLA',
+      stat: `${data.avgDealCycleDays}d Avg Cycle`,
     },
   ];
 
@@ -157,7 +166,7 @@ export function ReportsPage() {
               <Layers className="h-4 w-4 text-blue-400" />
               Pipeline Value by Lifecycle Stage
             </h3>
-            <span className="text-xs text-slate-400 font-mono">Gross INR</span>
+            <span className="text-xs text-slate-400 font-mono">Gross Volume</span>
           </div>
 
           <div className="h-64">
@@ -169,11 +178,11 @@ export function ReportsPage() {
                   stroke="#64748b"
                   fontSize={11}
                   tickLine={false}
-                  tickFormatter={(v) => `${(v / 100000).toFixed(0)}L`}
+                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#090d16', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }}
-                  formatter={(val: any) => [`₹${(val / 100000).toFixed(1)}L`, 'Value']}
+                  formatter={(val: any) => [formatCurrency(Number(val)), 'Value']}
                 />
                 <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
