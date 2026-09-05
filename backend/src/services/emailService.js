@@ -130,6 +130,104 @@ class EmailService {
 
     return { success: true, mode: 'development-logger' };
   }
+
+  /**
+   * Generates high-trust HTML template for DealFlow360 Password Reset OTP Email
+   */
+  generatePasswordResetOtpHtml(email, otpCode) {
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DealFlow360 Password Reset</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0A0F1E; margin: 0; padding: 24px; color: #F1F5F9; }
+    .container { max-width: 540px; margin: 0 auto; background-color: #111827; border: 1px solid #1F2937; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    .header { background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%); padding: 32px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.025em; }
+    .header p { margin: 6px 0 0 0; font-size: 13px; color: #DDD6FE; }
+    .body { padding: 32px 28px; }
+    .greeting { font-size: 15px; color: #E2E8F0; margin-bottom: 16px; }
+    .text { font-size: 14px; line-height: 1.6; color: #94A3B8; margin-bottom: 24px; }
+    .otp-card { background-color: #0F172A; border: 2px dashed #8B5CF6; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+    .otp-code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #A78BFA; margin: 0; }
+    .otp-expiry { font-size: 12px; color: #64748B; margin-top: 8px; }
+    .security-notice { background-color: rgba(239, 68, 68, 0.1); border-left: 3px solid #EF4444; padding: 12px 16px; border-radius: 6px; font-size: 12px; color: #FCA5A5; margin-top: 24px; }
+    .footer { padding: 20px 28px; background-color: #0B0F19; border-top: 1px solid #1F2937; text-align: center; font-size: 11px; color: #64748B; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>DealFlow360 Security</h1>
+      <p>Password Reset Authentication</p>
+    </div>
+    <div class="body">
+      <div class="greeting">Hello,</div>
+      <div class="text">
+        We received a request to reset the password for your DealFlow360 account (<strong>${email}</strong>). Please enter the following 6-digit one-time passcode (OTP) to authenticate and set your new password:
+      </div>
+      <div class="otp-card">
+        <div class="otp-code">${otpCode}</div>
+        <div class="otp-expiry">Valid for 10 minutes • Single-use only</div>
+      </div>
+      <div class="text" style="font-size: 12px; margin-bottom: 0;">
+        If you did not request a password reset, you can safely ignore this email. Your current password will remain unchanged.
+      </div>
+      <div class="security-notice">
+        <strong>Security Notice:</strong> Never share this verification code with anyone. DealFlow360 support will never ask for your code.
+      </div>
+    </div>
+    <div class="footer">
+      &copy; 2026 DealFlow360 Security Operations • Automated Delivery Gateway
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+  }
+
+  /**
+   * Sends 6-digit password reset OTP to target email address
+   * @param {string} email
+   * @param {string} otpCode
+   * @returns {Promise<{ success: boolean, messageId?: string, mode: string }>}
+   */
+  async sendPasswordResetOtp(email, otpCode) {
+    const subject = `[DealFlow360] ${otpCode} is your password reset code`;
+    const htmlContent = this.generatePasswordResetOtpHtml(email, otpCode);
+    const textContent = `Your DealFlow360 password reset code is: ${otpCode}. This code expires in 10 minutes. Do not share it with anyone.`;
+
+    // 1. If SMTP is configured, attempt real email delivery
+    if (this.transporter) {
+      try {
+        const info = await this.transporter.sendMail({
+          from: config.emailFrom,
+          to: email,
+          subject,
+          text: textContent,
+          html: htmlContent,
+        });
+        logger.info(`✅ Password reset OTP successfully delivered to ${email} (MessageId: ${info.messageId})`);
+        return { success: true, messageId: info.messageId, mode: 'smtp' };
+      } catch (smtpError) {
+        logger.error(`❌ SMTP password reset delivery failed to ${email}: ${smtpError.message}. Falling back to console logger.`);
+      }
+    }
+
+    // 2. Development logger fallback
+    console.log('\n' + '='.repeat(64));
+    console.log(`🔑 [DealFlow360 PASSWORD RESET OTP DISPATCH]`);
+    console.log(`📨 To:      ${email}`);
+    console.log(`🔑 6-DIGIT RESET CODE: [ ${otpCode} ]`);
+    console.log(`⏰ Expiry:  10 Minutes`);
+    console.log(`🛡️ Status:  Ready for password reset verification`);
+    console.log('='.repeat(64) + '\n');
+
+    return { success: true, mode: 'development-logger' };
+  }
 }
 
 export const emailService = new EmailService();

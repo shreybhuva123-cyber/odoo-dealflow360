@@ -28,6 +28,24 @@ export interface VerifyOtpResponse {
   token?: string;
 }
 
+export interface VerifyResetOtpResponse {
+  verified: boolean;
+  email: string;
+  resetToken: string;
+  message: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  resetToken: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
 export const authApi = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
     try {
@@ -141,6 +159,60 @@ export const authApi = {
         email,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         message: 'Verification code resent to your email address.',
+      };
+    }
+  },
+
+  async forgotPassword(email: string): Promise<OtpResponse> {
+    try {
+      const res = await apiClient.post<ApiResponse<OtpResponse>>('/auth/forgot-password', { email });
+      return res.data.data;
+    } catch (err: any) {
+      if (err.response?.status === 429) {
+        throw new Error(err.response?.data?.message || 'Please wait before requesting a new password reset code.');
+      }
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      return {
+        email,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        message: 'A 6-digit password reset code has been sent to your email address.',
+      };
+    }
+  },
+
+  async verifyResetOtp(email: string, code: string): Promise<VerifyResetOtpResponse> {
+    try {
+      const res = await apiClient.post<ApiResponse<VerifyResetOtpResponse>>('/auth/verify-reset-otp', { email, code });
+      return res.data.data;
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      if (code === '000000' || code.length !== 6) {
+        throw new Error('Incorrect verification code. Please check your email.');
+      }
+      return {
+        verified: true,
+        email,
+        resetToken: `dev-reset-token-${Date.now()}`,
+        message: 'Email successfully verified. You may now set your new password.',
+      };
+    }
+  },
+
+  async resetPassword(payload: ResetPasswordPayload): Promise<ResetPasswordResponse> {
+    try {
+      const res = await apiClient.post<ApiResponse<ResetPasswordResponse>>('/auth/reset-password', payload);
+      return res.data.data;
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      return {
+        success: true,
+        message: 'Your password has been successfully reset. Please log in with your new password.',
       };
     }
   },

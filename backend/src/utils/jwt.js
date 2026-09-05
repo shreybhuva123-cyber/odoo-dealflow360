@@ -48,3 +48,46 @@ export function sanitizeUser(user) {
   const { passwordHash, ...safeUser } = user;
   return safeUser;
 }
+
+/**
+ * Generate a short-lived signed JWT specifically for password resets
+ * @param {string} email
+ * @param {string} [expiresIn='15m']
+ * @returns {string}
+ */
+export function generateResetToken(email, expiresIn = '15m') {
+  if (!email) {
+    throw new Error('Email is required to generate a password reset token');
+  }
+
+  const payload = {
+    email: email.toLowerCase().trim(),
+    purpose: 'PASSWORD_RESET',
+  };
+
+  return jwt.sign(payload, config.jwtSecret, {
+    expiresIn,
+    algorithm: 'HS256',
+  });
+}
+
+/**
+ * Verify a password reset JWT token and extract email
+ * @param {string} token
+ * @returns {{ email: string, purpose: string }}
+ */
+export function verifyResetToken(token) {
+  if (!token) {
+    throw new Error('Reset token is required');
+  }
+
+  const decoded = jwt.verify(token, config.jwtSecret, {
+    algorithms: ['HS256'],
+  });
+
+  if (decoded.purpose !== 'PASSWORD_RESET') {
+    throw new Error('Invalid token purpose: not a password reset token');
+  }
+
+  return decoded;
+}

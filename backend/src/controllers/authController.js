@@ -101,6 +101,48 @@ export class AuthController {
   }
 
   /**
+   * Send 6-digit password reset OTP
+   * POST /api/auth/forgot-password
+   */
+  async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.forgotPassword(email);
+      return sendSuccess(res, 'Password reset verification code dispatched', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify password reset OTP and return temporary reset token
+   * POST /api/auth/verify-reset-otp
+   */
+  async verifyResetOtp(req, res, next) {
+    try {
+      const { email, code } = req.body;
+      const result = await authService.verifyPasswordResetOtp(email, code);
+      return sendSuccess(res, 'Email verified for password reset', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Complete password reset using verified resetToken
+   * POST /api/auth/reset-password
+   */
+  async resetPassword(req, res, next) {
+    try {
+      const { email, resetToken, newPassword } = req.body;
+      const result = await authService.resetPassword(email, resetToken, newPassword);
+      return sendSuccess(res, 'Password reset successful', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Administrative creation of internal staff with elevated roles
    * POST /api/auth/users
    */

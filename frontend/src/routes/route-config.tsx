@@ -54,6 +54,7 @@ import { RoleGuard } from '@/components/navigation/RoleGuard';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
 import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 
 // Route-Level Lazy Loading for Sub-Second Initial Bundle Performance
 const DashboardPage = React.lazy(() => import('@/pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -117,6 +118,10 @@ export const routes: RouteObject[] = [
   {
     path: '/verify-email',
     element: <VerifyEmailPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
   },
 
   // /dashboard shortcut redirect
@@ -270,6 +275,10 @@ export const routes: RouteObject[] = [
       {
         path: 'verify-email',
         element: <VerifyEmailPage />,
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPasswordPage />,
       },
     ],
   },

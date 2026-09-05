@@ -1,7 +1,17 @@
 import { Router } from 'express';
 import { authController } from '../controllers/authController.js';
 import { validate } from '../validators/index.js';
-import { registerSchema, loginSchema, adminCreateUserSchema, sendOtpSchema, verifyOtpSchema, resendOtpSchema } from '../validators/authValidator.js';
+import {
+  registerSchema,
+  loginSchema,
+  adminCreateUserSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
+  resendOtpSchema,
+  forgotPasswordSchema,
+  verifyResetOtpSchema,
+  resetPasswordSchema,
+} from '../validators/authValidator.js';
 import { authenticateToken } from '../middleware/authenticateToken.js';
 import { authorizeRoles } from '../middleware/authorizeRoles.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
@@ -28,6 +38,19 @@ router.post('/verify-otp', authRateLimiter, validate(verifyOtpSchema), (req, res
 
 router.post('/resend-otp', authRateLimiter, validate(resendOtpSchema), (req, res, next) =>
   authController.resendOtp(req, res, next)
+);
+
+// Password Reset Flow with Email OTP Verification
+router.post('/forgot-password', authRateLimiter, validate(forgotPasswordSchema), (req, res, next) =>
+  authController.forgotPassword(req, res, next)
+);
+
+router.post('/verify-reset-otp', authRateLimiter, validate(verifyResetOtpSchema), (req, res, next) =>
+  authController.verifyResetOtp(req, res, next)
+);
+
+router.post('/reset-password', authRateLimiter, validate(resetPasswordSchema), (req, res, next) =>
+  authController.resetPassword(req, res, next)
 );
 
 // Protected User Profile & Session

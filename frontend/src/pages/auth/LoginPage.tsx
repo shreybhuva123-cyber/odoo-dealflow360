@@ -151,9 +151,12 @@ export function LoginPage() {
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Password
                 </label>
-                <span className="text-[11px] text-primary/80 hover:text-primary cursor-pointer">
+                <Link
+                  to={ROUTES.AUTH.FORGOT_PASSWORD}
+                  className="text-[11px] text-primary/80 hover:text-primary hover:underline cursor-pointer"
+                >
                   Forgot password?
-                </span>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
