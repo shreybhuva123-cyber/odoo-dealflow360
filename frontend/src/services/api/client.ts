@@ -52,6 +52,20 @@ apiClient.interceptors.response.use(
       originalRequest.url?.includes('/auth/refresh');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      const refreshToken = tokenStorage.getRefreshToken();
+      const accessToken = tokenStorage.getAccessToken();
+
+      // If in demo mode or without a valid backend refresh token, reject immediately so callers fallback gracefully
+      if (
+        !refreshToken ||
+        refreshToken.startsWith('demo-') ||
+        refreshToken.startsWith('jwt-') ||
+        accessToken?.startsWith('demo-') ||
+        accessToken?.startsWith('jwt-')
+      ) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -67,12 +81,6 @@ apiClient.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
-
-      const refreshToken = tokenStorage.getRefreshToken();
-
-      if (!refreshToken || refreshToken.startsWith('demo-') || refreshToken.startsWith('jwt-')) {
-        return Promise.reject(error);
-      }
 
       try {
         // Attempt token refresh

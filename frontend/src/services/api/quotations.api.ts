@@ -384,7 +384,10 @@ function loadStoredQuotes(): Quotation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.warn('Failed to load quotes from storage', e);
@@ -419,18 +422,27 @@ export const quotationsApi = {
       const data = res.data?.data;
       if (data?.quotation) return data.quotation;
       if (data?.id) return data;
-      const all = loadStoredQuotes();
-      return (
-        all.find((q) => q.id === id || q.quoteNumber === id || q.id === `quote_${id.replace('Q-', '')}`) ||
-        all[0]
-      );
     } catch {
-      const all = loadStoredQuotes();
-      return (
-        all.find((q) => q.id === id || q.quoteNumber === id || q.id === `quote_${id.replace('Q-', '')}`) ||
-        all[0]
-      );
+      // Backend unavailable or 401, fallback to stored mock
     }
+
+    const all = loadStoredQuotes();
+    const cleanId = (id || '').toLowerCase().trim();
+    const cleanNum = cleanId.replace('q-', '').replace('quote_', '');
+
+    const found = all.find(
+      (q) =>
+        q.id.toLowerCase() === cleanId ||
+        q.quoteNumber.toLowerCase() === cleanId ||
+        (cleanNum && (q.id.toLowerCase().includes(cleanNum) || q.quoteNumber.toLowerCase().includes(cleanNum)))
+    );
+
+    return (
+      found ||
+      DEFAULT_MOCK_QUOTATIONS.find((q) => q.id === id || q.id === cleanId) ||
+      all[0] ||
+      DEFAULT_MOCK_QUOTATIONS[0]
+    );
   },
 
   async getByPortalToken(token: string): Promise<Quotation | null> {
