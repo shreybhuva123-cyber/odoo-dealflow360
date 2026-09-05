@@ -33,15 +33,16 @@ export function LoginPage() {
   const from = location.state?.from?.pathname || ROUTES.APP.DASHBOARD;
 
   const roleConfigs: { role: Role; icon: React.ReactNode; name: string; desc: string; defaultEmail: string; color: string }[] = [
-    { role: 'SALES_REP', icon: <UserCircle className="w-4 h-4" />, name: 'Sales Rep', desc: 'Build & manage quotes', defaultEmail: 'alex.morgan@dealflow360.com', color: 'blue' },
-    { role: 'SALES_MANAGER', icon: <Briefcase className="w-4 h-4" />, name: 'Sales Manager', desc: 'Approve & monitor deals', defaultEmail: 'maria.chen@dealflow360.com', color: 'purple' },
-    { role: 'FINANCE', icon: <Wallet className="w-4 h-4" />, name: 'Finance', desc: 'High-risk approvals & billing', defaultEmail: 'david.park@dealflow360.com', color: 'emerald' },
-    { role: 'ADMIN', icon: <Settings className="w-4 h-4" />, name: 'Admin', desc: 'Configure backend & reports', defaultEmail: 'admin@dealflow360.com', color: 'amber' },
+    { role: 'SALES_REP', icon: <UserCircle className="w-4 h-4" />, name: 'Sales Rep', desc: 'Build & manage quotes', defaultEmail: 'sarah.jenkins@dealflow360.internal', color: 'blue' },
+    { role: 'SALES_MANAGER', icon: <Briefcase className="w-4 h-4" />, name: 'Sales Manager', desc: 'Approve & monitor deals', defaultEmail: 'marcus.vance@dealflow360.internal', color: 'purple' },
+    { role: 'FINANCE', icon: <Wallet className="w-4 h-4" />, name: 'Finance', desc: 'High-risk approvals & billing', defaultEmail: 'rachel.sterling@dealflow360.internal', color: 'emerald' },
+    { role: 'ADMIN', icon: <Settings className="w-4 h-4" />, name: 'Admin', desc: 'Configure backend & reports', defaultEmail: 'elena.rostova@dealflow360.internal', color: 'amber' },
   ];
 
   const handleSelectRole = (r: Role, defaultMail: string) => {
     setSelectedRole(r);
     setEmail(defaultMail);
+    setPassword('password123');
     setErrorMessage(null);
   };
 
@@ -60,22 +61,18 @@ export function LoginPage() {
         password,
       });
 
-      const matchedUser = {
-        ...response.user,
-        role: selectedRole,
-        name:
-          selectedRole === 'SALES_REP'
-            ? 'Alex Morgan'
-            : selectedRole === 'SALES_MANAGER'
-            ? 'Maria Chen'
-            : selectedRole === 'FINANCE'
-            ? 'David Park'
-            : 'Admin User',
-      };
+      // Authoritative role from authenticated backend profile (never overwritten by client state)
+      const authenticatedUser = response.user;
 
-      login(matchedUser, response.tokens.accessToken, response.tokens.refreshToken);
-      showToast(`Welcome back, ${matchedUser.name}!`, 'green');
-      navigate(from, { replace: true });
+      login(authenticatedUser, response.tokens.accessToken, response.tokens.refreshToken);
+      showToast(`Welcome back, ${authenticatedUser.name}!`, 'green');
+
+      // Zero-trust customer isolation: Customer accounts strictly land on Customer Portal
+      if (authenticatedUser.role === 'CUSTOMER') {
+        navigate(ROUTES.PORTAL.QUOTE('portal_apex_1001_secure'), { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Invalid credentials');
       showToast(err.message || 'Login failed', 'red');
@@ -220,8 +217,16 @@ export function LoginPage() {
             </button>
           </form>
 
+          {/* Sign up link */}
+          <div className="text-center text-xs text-muted-foreground mt-4 pt-4 border-t border-border/40">
+            Don't have an account?{' '}
+            <Link to={ROUTES.AUTH.SIGNUP} className="text-primary hover:underline font-semibold">
+              Create account
+            </Link>
+          </div>
+
           {/* Footer hint */}
-          <p className="text-center text-[10px] text-muted-foreground/50 mt-5">
+          <p className="text-center text-[10px] text-muted-foreground/50 mt-3">
             Demo credentials are pre-filled • Select any role above
           </p>
         </div>

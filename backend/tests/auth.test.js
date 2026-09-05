@@ -6,6 +6,7 @@ import { config } from '../src/config/env.js';
 import { hashPassword, comparePassword } from '../src/utils/password.js';
 import { generateAccessToken, verifyAccessToken, sanitizeUser } from '../src/utils/jwt.js';
 import { authService } from '../src/services/authService.js';
+import { otpService } from '../src/services/otpService.js';
 import { UserRole } from '@prisma/client';
 
 test('Authentication, JWT & RBAC Comprehensive Test Suite', async (t) => {
@@ -421,6 +422,68 @@ test('Authentication, JWT & RBAC Comprehensive Test Suite', async (t) => {
     assert.strictEqual(decoded.password, undefined);
     assert.strictEqual(decoded.passwordHash, undefined);
     assert.strictEqual(decoded.customer, undefined);
+  });
+
+  // -------------------------------------------------------------
+  // EMAIL VERIFICATION WITH 6-DIGIT OTP
+  // -------------------------------------------------------------
+  const otpTestEmail = `verify.${Date.now()}@example.com`;
+
+  await t.test('23. POST /api/auth/send-otp dispatches 6-digit code and returns 200', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: otpTestEmail }),
+    });
+
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.strictEqual(data.data.email, otpTestEmail);
+    assert.ok(data.data.expiresAt);
+  });
+
+  await t.test('24. POST /api/auth/resend-otp respects 60-second cooldown and returns 429', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: otpTestEmail }),
+    });
+
+    assert.strictEqual(res.status, 429);
+    const data = await res.json();
+    assert.strictEqual(data.success, false);
+    assert.ok(data.message.includes('seconds before requesting a new verification code'));
+  });
+
+  await t.test('25. POST /api/auth/verify-otp rejects invalid 6-digit code with 400', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: otpTestEmail, code: '000000' }),
+    });
+
+    assert.strictEqual(res.status, 400);
+    const data = await res.json();
+    assert.strictEqual(data.success, false);
+    assert.ok(data.message.includes('Incorrect verification code'));
+  });
+
+  await t.test('26. POST /api/auth/verify-otp succeeds with correct 6-digit code', async () => {
+    const validCode = otpService.getDevOtp(otpTestEmail);
+    assert.ok(validCode);
+    assert.strictEqual(validCode.length, 6);
+
+    const res = await fetch(`${baseUrl}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: otpTestEmail, code: validCode }),
+    });
+
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.strictEqual(data.data.verified, true);
   });
 
   await t.test('Close test server', async () => {

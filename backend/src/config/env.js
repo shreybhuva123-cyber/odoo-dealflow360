@@ -22,6 +22,13 @@ export const config = {
   authRateLimitMax: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),
   generalRateLimitWindowMs: parseInt(process.env.GENERAL_RATE_LIMIT_WINDOW_MS || '900000', 10),
   generalRateLimitMax: parseInt(process.env.GENERAL_RATE_LIMIT_MAX || '500', 10),
+  // Email & SMTP configurations
+  smtpHost: process.env.SMTP_HOST || '',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  smtpSecure: process.env.SMTP_SECURE === 'true',
+  emailFrom: process.env.EMAIL_FROM || 'DealFlow360 Security <no-reply@dealflow360.com>',
 };
 
 export const env = config;

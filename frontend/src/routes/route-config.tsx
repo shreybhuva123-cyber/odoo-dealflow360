@@ -53,6 +53,7 @@ import { RoleGuard } from '@/components/navigation/RoleGuard';
 
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
+import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
 
 // Route-Level Lazy Loading for Sub-Second Initial Bundle Performance
 const DashboardPage = React.lazy(() => import('@/pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -104,7 +105,7 @@ export const routes: RouteObject[] = [
     element: <Navigate to="/app/dashboard" replace />,
   },
 
-  // Direct /login and /signup routes as required by Phase 2
+  // Direct /login, /signup, and /verify-email routes
   {
     path: '/login',
     element: <LoginPage />,
@@ -112,6 +113,10 @@ export const routes: RouteObject[] = [
   {
     path: '/signup',
     element: <SignupPage />,
+  },
+  {
+    path: '/verify-email',
+    element: <VerifyEmailPage />,
   },
 
   // /dashboard shortcut redirect
@@ -261,6 +266,10 @@ export const routes: RouteObject[] = [
       {
         path: 'signup',
         element: <SignupPage />,
+      },
+      {
+        path: 'verify-email',
+        element: <VerifyEmailPage />,
       },
     ],
   },

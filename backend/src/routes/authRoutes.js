@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authController } from '../controllers/authController.js';
 import { validate } from '../validators/index.js';
-import { registerSchema, loginSchema, adminCreateUserSchema } from '../validators/authValidator.js';
+import { registerSchema, loginSchema, adminCreateUserSchema, sendOtpSchema, verifyOtpSchema, resendOtpSchema } from '../validators/authValidator.js';
 import { authenticateToken } from '../middleware/authenticateToken.js';
 import { authorizeRoles } from '../middleware/authorizeRoles.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
@@ -15,6 +15,19 @@ router.post('/register', authRateLimiter, validate(registerSchema), (req, res, n
 
 router.post('/login', authRateLimiter, validate(loginSchema), (req, res, next) =>
   authController.login(req, res, next)
+);
+
+// Email Verification with Automated 6-Digit OTP
+router.post('/send-otp', authRateLimiter, validate(sendOtpSchema), (req, res, next) =>
+  authController.sendOtp(req, res, next)
+);
+
+router.post('/verify-otp', authRateLimiter, validate(verifyOtpSchema), (req, res, next) =>
+  authController.verifyOtp(req, res, next)
+);
+
+router.post('/resend-otp', authRateLimiter, validate(resendOtpSchema), (req, res, next) =>
+  authController.resendOtp(req, res, next)
 );
 
 // Protected User Profile & Session

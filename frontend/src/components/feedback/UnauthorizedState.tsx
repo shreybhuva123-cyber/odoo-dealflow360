@@ -28,40 +28,31 @@ export function UnauthorizedState({
           <p className="text-xs text-muted-foreground leading-relaxed">{message}</p>
         </div>
 
-        <div className="pt-2">
-          <Button
-            onClick={() => navigate(ROUTES.APP.DASHBOARD)}
-            variant="default"
-            size="sm"
-            className="w-full text-xs"
-          >
-            Go to Dashboard
-          </Button>
+        <div className="pt-2 flex flex-col gap-2">
+          {role === 'CUSTOMER' ? (
+            <Button
+              onClick={() => navigate(ROUTES.PORTAL.QUOTE('portal_apex_1001_secure'))}
+              variant="default"
+              size="sm"
+              className="w-full text-xs"
+            >
+              Go to Customer Portal
+            </Button>
+          ) : (
+            <Button
+              onClick={() => navigate(ROUTES.APP.DASHBOARD)}
+              variant="default"
+              size="sm"
+              className="w-full text-xs"
+            >
+              Go to Dashboard
+            </Button>
+          )}
         </div>
 
-        {/* Quick helper for evaluation testing */}
         <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground">
-          <p className="mb-2">Current Role: <span className="font-semibold text-primary font-mono">{role}</span></p>
-          <div className="flex justify-center gap-1.5">
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => switchRole('ADMIN')}
-              className="text-[10px]"
-            >
-              <ArrowRightLeft className="h-3 w-3 mr-1" />
-              Switch to Admin
-            </Button>
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => switchRole('SALES_MANAGER')}
-              className="text-[10px]"
-            >
-              <ArrowRightLeft className="h-3 w-3 mr-1" />
-              Switch to Manager
-            </Button>
-          </div>
+          <p>Logged in as: <span className="font-semibold text-primary font-mono">{role}</span></p>
+          <p className="text-[10px] text-muted-foreground/80 mt-0.5">Contact your system administrator to request elevated permissions.</p>
         </div>
       </div>
     </div>

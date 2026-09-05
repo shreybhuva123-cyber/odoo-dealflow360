@@ -59,6 +59,48 @@ export class AuthController {
   }
 
   /**
+   * Send 6-digit email verification OTP
+   * POST /api/auth/send-otp
+   */
+  async sendOtp(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.sendVerificationOtp(email);
+      return sendSuccess(res, 'Verification code sent successfully', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify submitted 6-digit email OTP
+   * POST /api/auth/verify-otp
+   */
+  async verifyOtp(req, res, next) {
+    try {
+      const { email, code } = req.body;
+      const result = await authService.verifyEmailOtp(email, code);
+      return sendSuccess(res, 'Email verified successfully', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Resend 6-digit email verification OTP
+   * POST /api/auth/resend-otp
+   */
+  async resendOtp(req, res, next) {
+    try {
+      const { email } = req.body;
+      const result = await authService.resendVerificationOtp(email);
+      return sendSuccess(res, 'Verification code resent successfully', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Administrative creation of internal staff with elevated roles
    * POST /api/auth/users
    */

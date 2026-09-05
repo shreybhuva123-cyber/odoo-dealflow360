@@ -3,6 +3,7 @@ export const ROUTES = {
     ROOT: '/auth',
     LOGIN: '/login',
     SIGNUP: '/signup',
+    VERIFY_EMAIL: '/verify-email',
   },
   APP: {
     ROOT: '/app',

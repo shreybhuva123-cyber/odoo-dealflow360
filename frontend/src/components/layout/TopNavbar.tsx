@@ -84,36 +84,38 @@ export function TopNavbar() {
 
       {/* Right Actions */}
       <div className="ml-auto flex items-center gap-2">
-        {/* Role Switcher */}
-        <DropdownMenu
-          trigger={
-            <button className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-border/50 transition-colors">
-              <ArrowRightLeft className="h-3 w-3 text-primary" />
-              <span>
-                Role: <strong className="text-primary">{role?.replace('_', ' ')}</strong>
-              </span>
-            </button>
-          }
-        >
-          <DropdownMenuLabel>Switch Persona (Demo)</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {availableRoles.map((r) => (
-            <DropdownMenuItem
-              key={r.role}
-              onClick={() => {
-                switchRole(r.role);
-                showToast(`Switched to ${r.label}`, 'green');
-              }}
-              className="flex items-start justify-between py-2"
-            >
-              <div>
-                <p className="font-semibold text-xs text-foreground">{r.label}</p>
-                <p className="text-[10px] text-muted-foreground">{r.desc}</p>
-              </div>
-              {role === r.role && <Check className="h-3.5 w-3.5 text-primary ml-2 flex-shrink-0" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenu>
+        {/* Role Switcher (Internal Staff Only - Air-gapped from Customers) */}
+        {role && role !== 'CUSTOMER' && (
+          <DropdownMenu
+            trigger={
+              <button className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-border/50 transition-colors">
+                <ArrowRightLeft className="h-3 w-3 text-primary" />
+                <span>
+                  Role: <strong className="text-primary">{role?.replace('_', ' ')}</strong>
+                </span>
+              </button>
+            }
+          >
+            <DropdownMenuLabel>Switch Persona (Demo)</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {availableRoles.map((r) => (
+              <DropdownMenuItem
+                key={r.role}
+                onClick={() => {
+                  switchRole(r.role);
+                  showToast(`Switched to ${r.label}`, 'green');
+                }}
+                className="flex items-start justify-between py-2"
+              >
+                <div>
+                  <p className="font-semibold text-xs text-foreground">{r.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{r.desc}</p>
+                </div>
+                {role === r.role && <Check className="h-3.5 w-3.5 text-primary ml-2 flex-shrink-0" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenu>
+        )}
 
         {/* Search / Command Palette */}
         <button

@@ -40,16 +40,19 @@ export function SignupPage() {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role,
+        role: data.role as any,
       });
 
-      login(response.user, response.tokens.accessToken, response.tokens.refreshToken);
-
-      if (response.user.role === 'CUSTOMER') {
-        navigate(ROUTES.PORTAL.QUOTE('portal_apex_1001_secure'), { replace: true });
-      } else {
-        navigate(ROUTES.APP.DASHBOARD, { replace: true });
-      }
+      // Redirect to 6-digit email OTP verification
+      navigate('/verify-email', {
+        state: {
+          email: data.email,
+          role: data.role,
+          devOtp: response.devOtp,
+          user: response.user,
+        },
+        replace: true,
+      });
     } catch (err: any) {
       setSignupError(err.message || 'Failed to create account. Please try again.');
     }
@@ -129,21 +132,17 @@ export function SignupPage() {
                 />
               </div>
 
-              {/* Role Selection (Hackathon Demo / Assignment) */}
+              {/* Account Type Selection (Public Self-Registration) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-foreground">Assign Role (Demo Select)</label>
-                  <span className="text-[10px] text-muted-foreground font-mono">Hackathon Persona</span>
+                  <label className="text-xs font-medium text-foreground">Account Type</label>
+                  <span className="text-[10px] text-muted-foreground font-mono">Workspace Role</span>
                 </div>
                 <Select
                   {...register('role')}
                   options={[
-                    { label: 'Sales Representative', value: 'SALES_REP' },
-                    { label: 'Sales Manager', value: 'SALES_MANAGER' },
-                    { label: 'Administrator', value: 'ADMIN' },
-                    { label: 'Finance & Invoicing', value: 'FINANCE' },
-                    { label: 'Warehouse & Logistics Ops', value: 'WAREHOUSE_OPS' },
-                    { label: 'Customer (Restricted Portal)', value: 'CUSTOMER' },
+                    { label: 'Sales Representative (Internal ERP)', value: 'SALES_REP' },
+                    { label: 'Customer / Buyer (External Portal)', value: 'CUSTOMER' },
                   ]}
                   error={errors.role?.message}
                 />

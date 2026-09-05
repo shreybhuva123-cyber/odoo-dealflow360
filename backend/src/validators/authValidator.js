@@ -19,3 +19,17 @@ export const adminCreateUserSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password must not exceed 100 characters'),
   role: z.nativeEnum(UserRole),
 });
+
+export const sendOtpSchema = z.object({
+  email: z.string().trim().email('Invalid email address format').toLowerCase(),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().trim().email('Invalid email address format').toLowerCase(),
+  code: z.string().trim().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits'),
+});
+
+export const resendOtpSchema = z.object({
+  email: z.string().trim().email('Invalid email address format').toLowerCase(),
+});
+

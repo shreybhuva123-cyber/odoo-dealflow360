@@ -29,14 +29,10 @@ export const signupSchema = z
       .string()
       .min(1, { message: 'Please confirm your password' }),
     role: z.enum([
-      'ADMIN',
-      'SALES_MANAGER',
       'SALES_REP',
-      'FINANCE',
-      'WAREHOUSE_OPS',
       'CUSTOMER',
     ], {
-      errorMap: () => ({ message: 'Please select a valid role' }),
+      errorMap: () => ({ message: 'Please select a valid role (Sales Representative or Customer)' }),
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {

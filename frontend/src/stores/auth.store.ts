@@ -22,15 +22,14 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
-// Hydrate from localStorage if existing, otherwise start logged in with Sales Manager for hackathon demo review
+// Hydrate from localStorage if existing, otherwise start unauthenticated for zero-trust security
 const savedUser = tokenStorage.getUserData<User>();
 const savedAccessToken = tokenStorage.getAccessToken();
 const savedRefreshToken = tokenStorage.getRefreshToken();
 
-// Initial user: if saved in storage use it, or initialize demo session
-const initialUser = savedUser ?? DEMO_USERS.SALES_MANAGER;
-const initialAccessToken = savedAccessToken ?? 'demo-jwt-access-token';
-const initialRefreshToken = savedRefreshToken ?? 'demo-jwt-refresh-token';
+const initialUser = savedUser ?? null;
+const initialAccessToken = savedAccessToken ?? null;
+const initialRefreshToken = savedRefreshToken ?? null;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: initialUser,
@@ -80,6 +79,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   switchRole: (newRole: Role) => {
+    const currentUser = get().user;
+    // SECURITY GUARD: Customers can NEVER escalate to internal staff or ADMIN
+    if (currentUser?.role === 'CUSTOMER') {
+      console.warn('Security Guard: Customers are strictly prohibited from role escalation.');
+      return;
+    }
+
     const demoUser = DEMO_USERS[newRole];
     if (demoUser) {
       tokenStorage.setUserData(demoUser);
