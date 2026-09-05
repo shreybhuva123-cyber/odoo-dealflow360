@@ -122,9 +122,10 @@ function computeDynamicPipelineReport(): PipelineSummaryReport {
 export const reportsApi = {
   async getPipelineSummary(): Promise<PipelineSummaryReport> {
     try {
-      const res = await apiClient.get<ApiResponse<PipelineSummaryReport>>('/dashboard/summary');
-      if (res.data?.data) {
-        return res.data.data;
+      const res = await apiClient.get<ApiResponse<any>>('/dashboard/summary');
+      const data = res.data?.data;
+      if (data && Array.isArray(data.stageDistribution) && Array.isArray(data.marginTrend)) {
+        return data as PipelineSummaryReport;
       }
       return computeDynamicPipelineReport();
     } catch {

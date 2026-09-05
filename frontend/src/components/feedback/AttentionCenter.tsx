@@ -28,11 +28,16 @@ export function AttentionCenter({ items }: AttentionCenterProps) {
   const displayItems = React.useMemo(() => {
     if (items && items.length > 0) return items;
 
-    const pendingApprovals = approvals.filter((a) => a.status === 'PENDING');
-    const riskyDeals = deals.filter((d) => d.health === 'critical' || d.health === 'at_risk');
-    const negotiationQuotes = quotes.filter((q) => q.status === 'NEGOTIATION');
-    const overdueInvoices = invoices.filter(
-      (i) => i.status === 'overdue' || (i.status === 'pending' && new Date(i.dueDate).getTime() < Date.now())
+    const safeApprovals = Array.isArray(approvals) ? approvals : [];
+    const safeDeals = Array.isArray(deals) ? deals : [];
+    const safeQuotes = Array.isArray(quotes) ? quotes : [];
+    const safeInvoices = Array.isArray(invoices) ? invoices : [];
+
+    const pendingApprovals = safeApprovals.filter((a) => a && a.status === 'PENDING');
+    const riskyDeals = safeDeals.filter((d) => d && (d.health === 'critical' || d.health === 'at_risk'));
+    const negotiationQuotes = safeQuotes.filter((q) => q && q.status === 'NEGOTIATION');
+    const overdueInvoices = safeInvoices.filter(
+      (i) => i && (i.status === 'overdue' || (i.status === 'pending' && i.dueDate && new Date(i.dueDate).getTime() < Date.now()))
     );
 
     const list: AttentionItem[] = [];

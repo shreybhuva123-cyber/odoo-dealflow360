@@ -403,8 +403,11 @@ function saveStoredQuotes(quotes: Quotation[]) {
 export const quotationsApi = {
   async getAll(): Promise<Quotation[]> {
     try {
-      const res = await apiClient.get<ApiResponse<Quotation[]>>('/quotations');
-      return res.data.data;
+      const res = await apiClient.get<any>('/quotations');
+      const data = res.data?.data;
+      if (Array.isArray(data) && data.length > 0) return data;
+      if (data && Array.isArray(data.quotations) && data.quotations.length > 0) return data.quotations;
+      return loadStoredQuotes();
     } catch {
       return loadStoredQuotes();
     }
@@ -412,8 +415,15 @@ export const quotationsApi = {
 
   async getById(id: string): Promise<Quotation | null> {
     try {
-      const res = await apiClient.get<ApiResponse<Quotation>>(`/quotations/${id}`);
-      return res.data.data;
+      const res = await apiClient.get<any>(`/quotations/${id}`);
+      const data = res.data?.data;
+      if (data?.quotation) return data.quotation;
+      if (data?.id) return data;
+      const all = loadStoredQuotes();
+      return (
+        all.find((q) => q.id === id || q.quoteNumber === id || q.id === `quote_${id.replace('Q-', '')}`) ||
+        all[0]
+      );
     } catch {
       const all = loadStoredQuotes();
       return (

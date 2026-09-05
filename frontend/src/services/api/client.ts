@@ -70,11 +70,7 @@ apiClient.interceptors.response.use(
 
       const refreshToken = tokenStorage.getRefreshToken();
 
-      if (!refreshToken) {
-        tokenStorage.clearAll();
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/auth/login') {
-          window.location.href = '/login';
-        }
+      if (!refreshToken || refreshToken.startsWith('demo-') || refreshToken.startsWith('jwt-')) {
         return Promise.reject(error);
       }
 
@@ -97,10 +93,6 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr as AxiosError, null);
-        tokenStorage.clearAll();
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/auth/login') {
-          window.location.href = '/login';
-        }
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

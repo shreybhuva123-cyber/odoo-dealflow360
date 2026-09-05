@@ -313,8 +313,15 @@ function saveStoredProducts(products: Product[]): void {
 export const productsApi = {
   async getAll(): Promise<Product[]> {
     try {
-      const res = await apiClient.get<ApiResponse<Product[]>>('/products');
-      return res.data.data;
+      const res = await apiClient.get<any>('/products');
+      const data = res.data?.data;
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+      if (data && Array.isArray(data.products) && data.products.length > 0) {
+        return data.products;
+      }
+      return getStoredProducts();
     } catch {
       return getStoredProducts();
     }
@@ -322,9 +329,10 @@ export const productsApi = {
 
   async search(query: string, category?: string, filters?: ProductFilterOptions): Promise<Product[]> {
     const all = await productsApi.getAll();
+    const safeAll = Array.isArray(all) ? all : getStoredProducts();
     const q = query.toLowerCase().trim();
 
-    return all.filter((p) => {
+    return safeAll.filter((p) => {
       const matchesQ =
         !q ||
         p.name.toLowerCase().includes(q) ||
@@ -351,8 +359,16 @@ export const productsApi = {
 
   async getById(id: string): Promise<Product | null> {
     try {
-      const res = await apiClient.get<ApiResponse<Product>>(`/products/${id}`);
-      return res.data.data;
+      const res = await apiClient.get<any>(`/products/${id}`);
+      const data = res.data?.data;
+      if (data?.product) {
+        return data.product;
+      }
+      if (data && !Array.isArray(data) && data.id) {
+        return data;
+      }
+      const list = getStoredProducts();
+      return list.find((p) => p.id === id || p.sku === id) || null;
     } catch {
       const list = getStoredProducts();
       return list.find((p) => p.id === id || p.sku === id) || null;
