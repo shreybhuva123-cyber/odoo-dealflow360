@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { FileText, HelpCircle, ShieldCheck } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { DealFlowDoodleBackground } from './DealFlowDoodleBackground';
 
 export function CustomerPortalLayout() {
   const [helpOpen, setHelpOpen] = useState(false);
@@ -36,10 +37,14 @@ export function CustomerPortalLayout() {
       </header>
 
       {/* Portal Main Content: strictly isolated, NO internal sidebar */}
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
-        <React.Suspense fallback={<div className="py-16 text-center text-xs text-slate-400">Loading secure quotation...</div>}>
-          <Outlet />
-        </React.Suspense>
+      <main className="relative flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
+        {/* DealFlow Project Doodle Pattern */}
+        <DealFlowDoodleBackground opacity={0.04} />
+        <div className="relative z-10">
+          <React.Suspense fallback={<div className="py-16 text-center text-xs text-slate-400">Loading secure quotation...</div>}>
+            <Outlet />
+          </React.Suspense>
+        </div>
       </main>
 
       {/* Customer Portal Footer */}
