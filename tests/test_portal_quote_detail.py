@@ -13,6 +13,7 @@ import unittest
 import urllib.request
 import urllib.error
 import subprocess
+import shutil
 from http.server import HTTPServer
 
 from mock_server.portal_mock_api import PortalMockHandler, MOCK_USERS, MOCK_QUOTES
@@ -22,6 +23,19 @@ def get_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(('127.0.0.1', 0))
         return s.getsockname()[1]
+
+
+def get_node_bin():
+    if shutil.which('node'):
+        return 'node'
+    for candidate in [
+        r'C:\Program Files\nodejs\node.exe',
+        r'C:\Program Files (x86)\nodejs\node.exe',
+        os.path.expanduser(r'~\AppData\Roaming\npm\node.cmd'),
+    ]:
+        if os.path.exists(candidate):
+            return candidate
+    return 'node'
 
 
 class TestPortalQuoteDetail(unittest.TestCase):
@@ -82,7 +96,7 @@ class TestPortalQuoteDetail(unittest.TestCase):
         {js_code}
         """
         proc = subprocess.run(
-            ['node', '-e', full_code],
+            [get_node_bin(), '-e', full_code],
             cwd=self.project_root,
             capture_output=True,
             text=True,
