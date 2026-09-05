@@ -83,7 +83,7 @@ export class FulfillmentService {
     }
 
     // Role check: sales rep can only view fulfillments for their own orders
-    if (user.role === UserRole.SALES_REP && order.salesRepId && order.salesRepId !== user.id) {
+    if (user.role === UserRole.SALES_REP && (!order.salesRepId || order.salesRepId !== user.id)) {
       throw new AppError('You do not have permission to view fulfillments for this order', 403);
     }
 

@@ -1,7 +1,7 @@
 import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/appError.js';
 import { recordAuditLog } from '../utils/auditLogger.js';
-import { formatPagination } from '../utils/pagination.js';
+import { formatPagination, getPaginationParams } from '../utils/pagination.js';
 import { QuoteStatus, OrderStatus, FulfillmentStatus, UserRole } from '@prisma/client';
 import { notificationEvents } from './notificationEvents.js';
 
@@ -213,9 +213,7 @@ export class OrderService {
    * Retrieve paginated orders with filters and RBAC
    */
   async getOrders(filters = {}, pagination = {}, user) {
-    const page = pagination.page || 1;
-    const limit = pagination.limit || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPaginationParams(pagination, 10, 100);
 
     const where = {};
 
@@ -637,7 +635,7 @@ export class OrderService {
 
     if (user.role === UserRole.SALES_REP) {
       const repId = order.salesRepId || (order.quotation && order.quotation.salesRepId);
-      if (repId && repId !== user.id) {
+      if (!repId || repId !== user.id) {
         throw new AppError('You do not have permission to view this order', 403);
       }
       return true;

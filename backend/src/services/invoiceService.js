@@ -1,7 +1,7 @@
 import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/appError.js';
 import { recordAuditLog } from '../utils/auditLogger.js';
-import { formatPagination } from '../utils/pagination.js';
+import { formatPagination, getPaginationParams } from '../utils/pagination.js';
 import { InvoiceStatus, PaymentStatus, UserRole } from '@prisma/client';
 import { notificationEvents } from './notificationEvents.js';
 import { activityService } from './activityService.js';
@@ -349,9 +349,8 @@ export class InvoiceService {
   /**
    * Get invoices with filters, pagination, and RBAC scoping
    */
-  async getInvoices(filters = {}, pagination = { page: 1, limit: 10 }, user) {
-    const { page, limit } = pagination;
-    const skip = (page - 1) * limit;
+  async getInvoices(filters = {}, pagination = {}, user) {
+    const { page, limit, skip } = getPaginationParams(pagination, 10, 100);
 
     const where = {};
 

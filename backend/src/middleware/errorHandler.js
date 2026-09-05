@@ -25,6 +25,16 @@ export function errorHandler(err, req, res, next) {
     );
   }
 
+  // 1b. Handle Payload Too Large (e.g., body exceeding limit)
+  if (err.status === 413 || err.statusCode === 413 || err.type === 'entity.too.large') {
+    return sendError(
+      res,
+      'Request payload exceeds the maximum allowed size of 500kb',
+      'PayloadTooLarge',
+      413
+    );
+  }
+
   // 2. Handle Zod validation errors
   if (err instanceof ZodError) {
     const formattedErrors = err.errors.map((e) => ({

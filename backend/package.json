@@ -18,7 +18,8 @@
     "test": "node --test --test-concurrency=1",
     "test:unit": "node --test tests/unit.test.js",
     "test:coverage": "node --test --experimental-test-coverage tests/unit.test.js",
-    "smoke": "node scripts/smokeTest.js"
+    "smoke": "node scripts/smokeTest.js",
+    "benchmark": "node scripts/benchmark.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

@@ -223,6 +223,9 @@ model User {
   notificationPreferences NotificationPreference[]
   activities           Activity[]              @relation("UserActivities")
 
+  @@index([role])
+  @@index([isActive])
+  @@index([role, isActive])
   @@map("users")
 }
 
@@ -251,6 +254,8 @@ model Customer {
 
   @@index([customerTier])
   @@index([email])
+  @@index([isActive])
+  @@index([customerTier, isActive])
   @@map("customers")
 }
 
@@ -305,6 +310,8 @@ model Product {
 
   @@index([categoryId])
   @@index([sku])
+  @@index([isActive])
+  @@index([categoryId, isActive])
   @@map("products")
 }
 
@@ -456,6 +463,10 @@ model Quotation {
   @@index([salesRepId])
   @@index([status])
   @@index([createdAt])
+  @@index([salesRepId, status])
+  @@index([customerId, status])
+  @@index([status, createdAt])
+  @@index([salesRepId, createdAt])
   @@map("quotations")
 }
 
@@ -508,6 +519,7 @@ model Approval {
   @@index([approverId])
   @@index([status])
   @@index([approvalRole])
+  @@index([status, approvalRole])
   @@map("approvals")
 }
 
@@ -624,6 +636,10 @@ model Order {
   @@index([salesRepId])
   @@index([status])
   @@index([createdAt])
+  @@index([salesRepId, status])
+  @@index([customerId, status])
+  @@index([status, createdAt])
+  @@index([salesRepId, createdAt])
   @@map("orders")
 }
 
@@ -679,6 +695,7 @@ model Fulfillment {
   @@index([orderId])
   @@index([status])
   @@index([assignedToId])
+  @@index([status, assignedToId])
   @@map("fulfillments")
 }
 
@@ -829,6 +846,9 @@ model Invoice {
   @@index([status])
   @@index([dueDate])
   @@index([createdAt])
+  @@index([customerId, status])
+  @@index([status, dueDate])
+  @@index([status, createdAt])
   @@map("invoices")
 }
 
@@ -998,6 +1018,7 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@index([entityType, entityId, createdAt])
   @@map("audit_logs")
 }
 

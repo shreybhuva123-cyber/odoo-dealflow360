@@ -26,7 +26,7 @@ app.use(requestLogger);
 
 // 4. Body parsing with strict size limits to prevent request flooding
 app.use(express.json({ limit: '500kb' }));
-app.use(express.urlencoded({ extended: true, limit: '500kb' }));
+app.use(express.urlencoded({ extended: false, limit: '500kb' }));
 
 // 5. Parameter sanitization & HTTP Parameter Pollution defense
 app.use(parameterSanitizer);
