@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Invoice, Role } from '@/types';
 import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { ROUTES } from '@/constants/routes';
-import { showToast } from '@/stores/toast.store';
+import { downloadInvoicePdf } from '@/utils/invoiceDownload';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
   userRole?: Role | null;
   onRecordPayment?: (invoice: Invoice) => void;
   onSendReminder?: (invoice: Invoice) => void;
+  onDownloadPdf?: (invoice: Invoice) => void;
   className?: string;
 }
 
@@ -18,6 +19,7 @@ export function InvoiceTable({
   userRole,
   onRecordPayment,
   onSendReminder,
+  onDownloadPdf,
   className = '',
 }: InvoiceTableProps) {
   const navigate = useNavigate();
@@ -189,12 +191,12 @@ export function InvoiceTable({
                     <button
                       type="button"
                       onClick={() =>
-                        showToast(`PDF invoice generated for ${inv.invoiceNumber}`, 'green')
+                        onDownloadPdf ? onDownloadPdf(inv) : downloadInvoicePdf(inv)
                       }
-                      className="btn btn-ghost btn-xs text-[11px] text-muted-foreground hover:text-foreground"
-                      title="Download Invoice PDF"
+                      className="btn btn-ghost btn-xs text-[11px] text-muted-foreground hover:text-foreground font-semibold"
+                      title="Download / Print Invoice PDF"
                     >
-                      PDF
+                      📄 PDF
                     </button>
 
                     <button

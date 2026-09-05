@@ -1,7 +1,11 @@
 import React from 'react';
 import { Invoice, Role } from '@/types';
 import { InvoiceStatusBadge } from './InvoiceStatusBadge';
-import { showToast } from '@/stores/toast.store';
+import {
+  downloadInvoicePdf,
+  downloadInvoiceHtml,
+  downloadInvoiceJson,
+} from '@/utils/invoiceDownload';
 
 interface InvoiceHeaderProps {
   invoice: Invoice;
@@ -9,6 +13,8 @@ interface InvoiceHeaderProps {
   onRecordPayment?: () => void;
   onSendInvoice?: () => void;
   onSendReminder?: () => void;
+  onDownloadPdf?: () => void;
+  onDownloadHtml?: () => void;
   isSending?: boolean;
 }
 
@@ -18,6 +24,8 @@ export function InvoiceHeader({
   onRecordPayment,
   onSendInvoice,
   onSendReminder,
+  onDownloadPdf,
+  onDownloadHtml,
   isSending = false,
 }: InvoiceHeaderProps) {
   const isFinanceOrAdmin =
@@ -98,10 +106,29 @@ export function InvoiceHeader({
 
             <button
               type="button"
-              onClick={() => showToast(`Exported ${invoice.invoiceNumber} to PDF`, 'green')}
-              className="btn btn-ghost btn-sm text-xs"
+              onClick={() => (onDownloadPdf ? onDownloadPdf() : downloadInvoicePdf(invoice))}
+              className="btn btn-ghost btn-sm text-xs font-semibold"
+              title="Print or Save invoice as PDF"
             >
-              📄 Download PDF
+              📄 Print / PDF
+            </button>
+
+            <button
+              type="button"
+              onClick={() => (onDownloadHtml ? onDownloadHtml() : downloadInvoiceHtml(invoice))}
+              className="btn btn-ghost btn-sm text-xs font-semibold"
+              title="Download offline HTML invoice file"
+            >
+              💾 Save HTML
+            </button>
+
+            <button
+              type="button"
+              onClick={() => downloadInvoiceJson(invoice)}
+              className="btn btn-ghost btn-sm text-xs text-muted-foreground hover:text-foreground"
+              title="Export structured invoice JSON"
+            >
+              JSON
             </button>
           </div>
         </div>

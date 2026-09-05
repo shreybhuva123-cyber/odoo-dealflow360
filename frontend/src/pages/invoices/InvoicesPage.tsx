@@ -23,6 +23,7 @@ import {
   Plus,
   Download,
 } from 'lucide-react';
+import { downloadInvoiceCsv, downloadInvoicePdf } from '@/utils/invoiceDownload';
 
 export function InvoicesPage() {
   const [searchParams] = useSearchParams();
@@ -72,7 +73,7 @@ export function InvoicesPage() {
   }, [invoices]);
 
   const handleExportCSV = () => {
-    showToast('Invoices exported to CSV successfully', 'green');
+    downloadInvoiceCsv(invoices);
   };
 
   const handleReset = () => {
@@ -203,6 +204,7 @@ export function InvoicesPage() {
           invoices={invoices}
           onRecordPayment={(inv) => setPaymentInvoice(inv)}
           onSendReminder={(inv) => setReminderInvoice(inv)}
+          onDownloadPdf={(inv) => downloadInvoicePdf(inv)}
         />
       )}
 

@@ -20,6 +20,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { showToast } from '@/stores/toast.store';
+import { downloadInvoicePdf, downloadInvoiceHtml } from '@/utils/invoiceDownload';
 import {
   Building2,
   FileText,
@@ -77,10 +78,15 @@ export function InvoiceDetailPage() {
   };
 
   const handleDownloadPdf = () => {
-    showToast(`Downloading PDF for invoice ${invoice.invoiceNumber}...`, 'blue');
-    setTimeout(() => {
-      showToast(`Invoice ${invoice.invoiceNumber}.pdf downloaded`, 'green');
-    }, 800);
+    if (invoice) {
+      downloadInvoicePdf(invoice);
+    }
+  };
+
+  const handleDownloadHtml = () => {
+    if (invoice) {
+      downloadInvoiceHtml(invoice);
+    }
   };
 
   return (
@@ -91,6 +97,8 @@ export function InvoiceDetailPage() {
         onRecordPayment={() => setIsPaymentOpen(true)}
         onSendInvoice={handleSendInvoice}
         onSendReminder={() => setIsReminderOpen(true)}
+        onDownloadPdf={handleDownloadPdf}
+        onDownloadHtml={handleDownloadHtml}
         isSending={sendInvoiceMutation.isPending || recordPaymentMutation.isPending}
       />
 
