@@ -1,0 +1,75 @@
+import { authService } from '../services/authService.js';
+import { sendSuccess } from '../utils/apiResponse.js';
+
+export class AuthController {
+  /**
+   * Public user registration (restricted to SALES_REP)
+   * POST /api/auth/register
+   */
+  async register(req, res, next) {
+    try {
+      const user = await authService.registerUser(req.body);
+      return sendSuccess(res, 'User registered successfully', { user }, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * User login with credential verification and JWT generation
+   * POST /api/auth/login
+   */
+  async login(req, res, next) {
+    try {
+      const { email, password } = req.body;
+      const result = await authService.loginUser(email, password);
+      return sendSuccess(res, 'Login successful', result, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get current authenticated user profile
+   * GET /api/auth/me
+   */
+  async me(req, res, next) {
+    try {
+      return sendSuccess(res, 'Current user profile retrieved', { user: req.user }, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Logout user (stateless JWT acknowledgment)
+   * POST /api/auth/logout
+   */
+  async logout(req, res, next) {
+    try {
+      return sendSuccess(
+        res,
+        'Logout successful. Access token must be removed from client storage.',
+        null,
+        200
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Administrative creation of internal staff with elevated roles
+   * POST /api/auth/users
+   */
+  async adminCreateUser(req, res, next) {
+    try {
+      const user = await authService.adminCreateUser(req.body);
+      return sendSuccess(res, 'Internal user created successfully', { user }, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+export const authController = new AuthController();
