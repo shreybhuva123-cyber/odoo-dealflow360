@@ -56,7 +56,6 @@ export function LoginPage() {
           state: {
             email: response.user.email,
             role: response.user.role,
-            devOtp: (response as any).devOtp,
           },
         });
         return;

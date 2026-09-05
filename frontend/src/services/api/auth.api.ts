@@ -19,7 +19,6 @@ export interface OtpResponse {
   email: string;
   expiresAt: string;
   message: string;
-  devOtp?: string;
 }
 
 export interface VerifyOtpResponse {
@@ -72,9 +71,9 @@ export const authApi = {
     }
   },
 
-  async signup(payload: SignupPayload): Promise<LoginResponse & { requiresVerification?: boolean; devOtp?: string }> {
+  async signup(payload: SignupPayload): Promise<LoginResponse & { requiresVerification?: boolean }> {
     try {
-      const res = await apiClient.post<ApiResponse<LoginResponse & { requiresVerification?: boolean; devOtp?: string }>>('/auth/register', payload);
+      const res = await apiClient.post<ApiResponse<LoginResponse & { requiresVerification?: boolean }>>('/auth/register', payload);
       return res.data.data;
     } catch {
       // In development fallback, enforce role boundary (disallow ADMIN in public signup)
@@ -107,13 +106,10 @@ export const authApi = {
       const res = await apiClient.post<ApiResponse<OtpResponse>>('/auth/send-otp', { email });
       return res.data.data;
     } catch {
-      // Development mock fallback
-      const devCode = Math.floor(100000 + Math.random() * 900000).toString();
       return {
         email,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         message: 'Verification code sent to your email address.',
-        devOtp: devCode,
       };
     }
   },
@@ -141,12 +137,10 @@ export const authApi = {
       if (err.response?.status === 429) {
         throw new Error(err.response?.data?.message || 'Please wait before requesting a new code.');
       }
-      const devCode = Math.floor(100000 + Math.random() * 900000).toString();
       return {
         email,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         message: 'Verification code resent to your email address.',
-        devOtp: devCode,
       };
     }
   },

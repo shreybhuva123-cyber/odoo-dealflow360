@@ -52,7 +52,6 @@ export class AuthService {
       ...sanitized,
       requiresVerification: true,
       expiresAt,
-      devOtp: config.isDevelopment ? code : undefined,
     };
   }
 
@@ -79,7 +78,6 @@ export class AuthService {
       email: normalizedEmail,
       expiresAt,
       message: 'Verification code sent to your email address.',
-      devOtp: config.isDevelopment ? code : undefined,
     };
   }
 

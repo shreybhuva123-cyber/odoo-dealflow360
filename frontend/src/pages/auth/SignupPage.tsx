@@ -48,7 +48,6 @@ export function SignupPage() {
         state: {
           email: data.email,
           role: data.role,
-          devOtp: response.devOtp,
           user: response.user,
         },
         replace: true,

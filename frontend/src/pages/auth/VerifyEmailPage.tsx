@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Mail, CheckCircle2, AlertCircle, RefreshCw, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
+import { Mail, CheckCircle2, AlertCircle, RefreshCw, ArrowRight, ShieldCheck, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
@@ -14,9 +14,9 @@ export function VerifyEmailPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
 
-  const stateEmail = location.state?.email || '';
+  const storedEmail = typeof window !== 'undefined' ? sessionStorage.getItem('dealflow_verify_email') || '' : '';
+  const stateEmail = location.state?.email || storedEmail;
   const stateRole = location.state?.role || 'SALES_REP';
-  const initialDevOtp = location.state?.devOtp || null;
   const stateUser = location.state?.user || null;
 
   const [email, setEmail] = useState<string>(stateEmail);
@@ -25,17 +25,19 @@ export function VerifyEmailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState<number>(0);
-  const [devOtp, setDevOtp] = useState<string | null>(initialDevOtp);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // If email was not passed in state, prompt or redirect to login
+  // Persist email in sessionStorage so page reload does not lose state
   useEffect(() => {
-    if (!email) {
+    if (email) {
+      sessionStorage.setItem('dealflow_verify_email', email);
+    } else {
       const searchParams = new URLSearchParams(location.search);
       const paramEmail = searchParams.get('email');
       if (paramEmail) {
         setEmail(paramEmail);
+        sessionStorage.setItem('dealflow_verify_email', paramEmail);
       }
     }
   }, [email, location.search]);
@@ -133,22 +135,12 @@ export function VerifyEmailPage() {
     setSuccessMessage(null);
 
     try {
-      const res = await authApi.resendOtp(email);
+      await authApi.resendOtp(email);
       setCooldown(60);
-      if (res.devOtp) {
-        setDevOtp(res.devOtp);
-      }
-      showToast('A fresh 6-digit code was sent to your email', 'blue');
+      setSuccessMessage('A fresh 6-digit verification code has been dispatched to your email.');
+      showToast('Verification code sent to your email inbox', 'blue');
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to resend code. Please try again shortly.');
-    }
-  };
-
-  const handleQuickFillDevOtp = () => {
-    if (devOtp && devOtp.length === 6) {
-      setDigits(devOtp.split(''));
-      inputRefs.current[5]?.focus();
-      showToast('Test OTP filled', 'blue');
     }
   };
 
@@ -195,23 +187,6 @@ export function VerifyEmailPage() {
               </Alert>
             )}
 
-            {/* Dev Mode OTP Helper Notice */}
-            {devOtp && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <KeyRound className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span>Dev OTP: <strong>{devOtp}</strong></span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleQuickFillDevOtp}
-                  className="text-[11px] font-semibold text-blue-300 hover:text-white underline cursor-pointer"
-                >
-                  Auto-fill
-                </button>
-              </div>
-            )}
-
             <form onSubmit={handleVerify} className="space-y-5">
               {/* 6-box OTP input */}
               <div className="flex items-center justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
@@ -243,18 +218,22 @@ export function VerifyEmailPage() {
             </form>
 
             {/* Resend Action */}
-            <div className="text-center pt-2">
+            <div className="text-center pt-2 space-y-2">
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={cooldown > 0 || isSubmitting}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <RefreshCw className={`h-3 w-3 ${cooldown > 0 ? 'animate-spin' : ''}`} />
                 <span>
                   {cooldown > 0 ? `Resend Code in ${cooldown}s` : "Didn't receive code? Resend OTP"}
                 </span>
               </button>
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/70">
+                <Inbox className="h-3 w-3" />
+                <span>Can't find the email? Check your Spam or Promotions folder.</span>
+              </div>
             </div>
           </CardContent>
 
