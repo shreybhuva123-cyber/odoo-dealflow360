@@ -4,19 +4,17 @@ import { useAuthStore } from '@/stores/auth.store';
 import { authApi } from '@/services/api/auth.api';
 import { ROUTES } from '@/constants/routes';
 import { showToast } from '@/stores/toast.store';
-import { Role } from '@/types';
 import { DEMO_USERS } from '@/constants/roles';
 import { cn } from '@/lib/utils';
 import {
-  UserCircle,
-  Briefcase,
-  Wallet,
-  Settings,
   AlertCircle,
   Loader2,
   ArrowRight,
   Lock,
   Mail,
+  Shield,
+  Layers,
+  KeyRound,
 } from 'lucide-react';
 
 export function LoginPage() {
@@ -24,27 +22,13 @@ export function LoginPage() {
   const location = useLocation();
   const { login } = useAuthStore();
 
-  const [selectedRole, setSelectedRole] = useState<Role>('SALES_REP');
-  const [email, setEmail] = useState('alex.morgan@dealflow360.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const from = location.state?.from?.pathname || ROUTES.APP.DASHBOARD;
-
-  const roleConfigs: { role: Role; icon: React.ReactNode; name: string; desc: string; defaultEmail: string; color: string }[] = [
-    { role: 'SALES_REP', icon: <UserCircle className="w-4 h-4" />, name: 'Sales Rep', desc: 'Build & manage quotes', defaultEmail: 'sarah.jenkins@dealflow360.internal', color: 'blue' },
-    { role: 'SALES_MANAGER', icon: <Briefcase className="w-4 h-4" />, name: 'Sales Manager', desc: 'Approve & monitor deals', defaultEmail: 'marcus.vance@dealflow360.internal', color: 'purple' },
-    { role: 'FINANCE', icon: <Wallet className="w-4 h-4" />, name: 'Finance', desc: 'High-risk approvals & billing', defaultEmail: 'rachel.sterling@dealflow360.internal', color: 'emerald' },
-    { role: 'ADMIN', icon: <Settings className="w-4 h-4" />, name: 'Admin', desc: 'Configure backend & reports', defaultEmail: 'elena.rostova@dealflow360.internal', color: 'amber' },
-  ];
-
-  const handleSelectRole = (r: Role, defaultMail: string) => {
-    setSelectedRole(r);
-    setEmail(defaultMail);
-    setPassword('password123');
-    setErrorMessage(null);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,16 +36,33 @@ export function LoginPage() {
     setErrorMessage(null);
 
     try {
-      if (password === 'wrongpassword' || password.length < 8) {
-        throw new Error('Password must contain at least 8 characters and match credentials.');
+      if (!email.trim() || !password) {
+        throw new Error('Please enter both your email address and password.');
+      }
+
+      if (password === 'wrongpassword' || password.length < 6) {
+        throw new Error('Invalid email or password. Please verify your credentials.');
       }
 
       const response = await authApi.login({
-        email,
+        email: email.trim().toLowerCase(),
         password,
+        rememberMe,
       });
 
-      // Authoritative role from authenticated backend profile (never overwritten by client state)
+      // Check if email requires 6-digit OTP verification
+      if ((response as any).requiresVerification) {
+        navigate(ROUTES.AUTH.VERIFY_EMAIL, {
+          state: {
+            email: response.user.email,
+            role: response.user.role,
+            devOtp: (response as any).devOtp,
+          },
+        });
+        return;
+      }
+
+      // Authoritative authenticated user profile from backend (strictly verified)
       const authenticatedUser = response.user;
 
       login(authenticatedUser, response.tokens.accessToken, response.tokens.refreshToken);
@@ -74,49 +75,51 @@ export function LoginPage() {
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Invalid credentials');
+      setErrorMessage(err.message || 'Invalid credentials. Please check your email and password.');
       showToast(err.message || 'Login failed', 'red');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const roleColorMap: Record<string, { selected: string; ring: string; iconBg: string }> = {
-    blue: { selected: 'border-blue-500/60 bg-blue-500/10', ring: 'ring-blue-500/30', iconBg: 'bg-blue-500/20 text-blue-400' },
-    purple: { selected: 'border-purple-500/60 bg-purple-500/10', ring: 'ring-purple-500/30', iconBg: 'bg-purple-500/20 text-purple-400' },
-    emerald: { selected: 'border-emerald-500/60 bg-emerald-500/10', ring: 'ring-emerald-500/30', iconBg: 'bg-emerald-500/20 text-emerald-400' },
-    amber: { selected: 'border-amber-500/60 bg-amber-500/10', ring: 'ring-amber-500/30', iconBg: 'bg-amber-500/20 text-amber-400' },
+  const handleQuickFill = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('password123');
+    setErrorMessage(null);
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-5">
+    <div className="min-h-screen bg-background flex items-center justify-center p-5 selection:bg-blue-600 selection:text-white">
       {/* Subtle grid background */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
 
-      <div className="relative w-full max-w-[400px] animate-fade-in">
+      <div className="relative w-full max-w-[420px] animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-xl font-black text-white mx-auto mb-3 shadow-lg shadow-primary/25">
-            D
+            <Layers className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
             DealFlow360
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Enterprise Sales Operations Platform
+            Enterprise Sales Operations & B2B Deal Closing
           </p>
         </div>
 
-        {/* Card */}
+        {/* Login Card */}
         <div className="bg-card border border-border rounded-2xl p-7 shadow-xl shadow-black/20">
-          <h2 className="text-base font-bold text-foreground mb-1">
-            Sign in to your workspace
-          </h2>
+          <div className="flex items-center gap-2 mb-1">
+            <Shield className="w-4 h-4 text-primary" />
+            <h2 className="text-base font-bold text-foreground">
+              Sign in to your workspace
+            </h2>
+          </div>
           <p className="text-xs text-muted-foreground mb-6">
-            Choose a role to explore the platform
+            Enter your verified credentials to access your portal or dashboard
           </p>
 
-          {/* Error */}
+          {/* Error Banner */}
           {errorMessage && (
             <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2.5 text-xs text-destructive mb-5 animate-slide-down">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -124,42 +127,11 @@ export function LoginPage() {
             </div>
           )}
 
-          {/* Role Grid */}
-          <div className="grid grid-cols-2 gap-2.5 mb-6">
-            {roleConfigs.map((rc) => {
-              const isSelected = selectedRole === rc.role;
-              const colors = roleColorMap[rc.color];
-              return (
-                <button
-                  key={rc.role}
-                  type="button"
-                  onClick={() => handleSelectRole(rc.role, rc.defaultEmail)}
-                  className={cn(
-                    'text-left p-3 rounded-xl border transition-all duration-200 group cursor-pointer',
-                    isSelected
-                      ? `${colors.selected} ring-1 ${colors.ring} shadow-sm`
-                      : 'border-border/60 bg-muted/30 hover:bg-muted/50 hover:border-border'
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={cn('w-6 h-6 rounded-md flex items-center justify-center', colors.iconBg)}>
-                      {rc.icon}
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">{rc.name}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-snug pl-8">
-                    {rc.desc}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Form */}
+          {/* Main Authentication Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Email
+                Work Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
@@ -168,16 +140,22 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full h-10 pl-10 pr-3 rounded-lg border border-border/60 bg-muted/20 text-foreground text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all"
-                  placeholder="you@company.com"
+                  autoComplete="email"
+                  className="w-full h-11 pl-10 pr-3 rounded-xl border border-border/70 bg-muted/20 text-foreground text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all"
+                  placeholder="name@company.com"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Password
+                </label>
+                <span className="text-[11px] text-primary/80 hover:text-primary cursor-pointer">
+                  Forgot password?
+                </span>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
@@ -185,50 +163,100 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full h-10 pl-10 pr-3 rounded-lg border border-border/60 bg-muted/20 text-foreground text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all"
-                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full h-11 pl-10 pr-3 rounded-xl border border-border/70 bg-muted/20 text-foreground text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all"
+                  placeholder="••••••••••••"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <label className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Remember this device</span>
+              </label>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
               className={cn(
-                'w-full h-10 rounded-lg text-sm font-semibold transition-all duration-200',
+                'w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 mt-2',
                 'bg-primary text-primary-foreground',
                 'hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25',
                 'active:scale-[0.98]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
-                'flex items-center justify-center gap-2'
+                'flex items-center justify-center gap-2 cursor-pointer'
               )}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing in...</span>
+                  <span>Authenticating credentials...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign in</span>
+                  <span>Sign In</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Sign up link */}
-          <div className="text-center text-xs text-muted-foreground mt-4 pt-4 border-t border-border/40">
+          {/* Registration Redirect */}
+          <div className="text-center text-xs text-muted-foreground mt-5 pt-4 border-t border-border/40">
             Don't have an account?{' '}
-            <Link to={ROUTES.AUTH.SIGNUP} className="text-primary hover:underline font-semibold">
+            <Link to={ROUTES.AUTH.SIGNUP} className="text-primary hover:underline font-semibold ml-1">
               Create account
             </Link>
           </div>
 
-          {/* Footer hint */}
-          <p className="text-center text-[10px] text-muted-foreground/50 mt-3">
-            Demo credentials are pre-filled • Select any role above
-          </p>
+          {/* Collapsible Demo Quick-Fill for Evaluators / Hackathon Testing */}
+          <details className="mt-4 pt-3 border-t border-border/30 group">
+            <summary className="cursor-pointer text-[11px] text-muted-foreground/70 hover:text-muted-foreground flex items-center justify-center gap-1.5 font-medium transition-colors select-none">
+              <KeyRound className="w-3 h-3" />
+              <span>Demo Quick-Fill Accounts (Testing)</span>
+            </summary>
+            <div className="grid grid-cols-2 gap-1.5 mt-3 pt-1">
+              <button
+                type="button"
+                onClick={() => handleQuickFill(DEMO_USERS.ADMIN.email)}
+                className="text-left px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/60 text-[11px] transition-colors cursor-pointer"
+              >
+                <div className="font-semibold text-foreground">Admin</div>
+                <div className="text-[9px] text-muted-foreground truncate">{DEMO_USERS.ADMIN.email}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill(DEMO_USERS.SALES_REP.email)}
+                className="text-left px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/60 text-[11px] transition-colors cursor-pointer"
+              >
+                <div className="font-semibold text-foreground">Sales Rep</div>
+                <div className="text-[9px] text-muted-foreground truncate">{DEMO_USERS.SALES_REP.email}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill(DEMO_USERS.SALES_MANAGER.email)}
+                className="text-left px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/60 text-[11px] transition-colors cursor-pointer"
+              >
+                <div className="font-semibold text-foreground">Manager</div>
+                <div className="text-[9px] text-muted-foreground truncate">{DEMO_USERS.SALES_MANAGER.email}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill(DEMO_USERS.CUSTOMER.email)}
+                className="text-left px-2.5 py-1.5 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/60 text-[11px] transition-colors cursor-pointer"
+              >
+                <div className="font-semibold text-foreground">Customer</div>
+                <div className="text-[9px] text-muted-foreground truncate">{DEMO_USERS.CUSTOMER.email}</div>
+              </button>
+            </div>
+          </details>
         </div>
       </div>
     </div>
