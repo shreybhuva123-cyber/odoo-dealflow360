@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DealFlow360 — Customer Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { 950: '#0B0F19', 900: '#0F172A', 800: '#1E293B', 600: '#4F46E5', 500: '#6366F1' },
+            accent: { green: '#059669', amber: '#D97706', red: '#DC2626' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .drawer-overlay { backdrop-filter: blur(4px); }
+  </style>
+  <link rel="stylesheet" href="/css/portal-foundation.css">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- TOP UTILITY HEADER -->
+  <header id="top-navbar" class="bg-white border-b border-slate-200 sticky top-0 z-30 hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">DF</div>
+          <span class="font-semibold text-slate-900 tracking-tight text-lg">DealFlow<span class="text-indigo-600">360</span></span>
+          <span class="ml-2 text-xs uppercase px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Customer Portal</span>
+        </div>
+        <nav class="hidden md:flex space-x-1 pl-6">
+          <button onclick="navigate('#/dashboard')" id="nav-dashboard" class="px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100">Dashboard</button>
+          <button onclick="navigate('#/quotes')" id="nav-quotes" class="px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100">My Quotations</button>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3">
+        <!-- Live notification bell -->
+        <button onclick="toggleNotifications()" class="relative p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 focus:outline-none">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span id="notif-badge" class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white hidden"></span>
+        </button>
+        <!-- User Profile Dropdown -->
+        <div class="flex items-center pl-3 border-l border-slate-200 space-x-3">
+          <div class="text-right">
+            <div id="user-display-name" class="text-sm font-medium text-slate-800">Sarah Connor</div>
+            <div id="user-company-name" class="text-xs text-slate-500">Cyberdyne Defense Systems</div>
+          </div>
+          <button onclick="handleLogout()" title="Log Out" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1.5 rounded-md font-medium border border-slate-200">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION DROPDOWN MODAL -->
+  <div id="notif-dropdown" class="hidden absolute right-16 top-16 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-40 p-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
+      <span class="font-semibold text-sm text-slate-900">Notifications</span>
+      <button onclick="markAllNotificationsRead()" class="text-xs text-indigo-600 hover:underline">Mark all read</button>
+    </div>
+    <div id="notif-list" class="space-y-2 max-h-60 overflow-y-auto text-xs text-slate-600">
+      <!-- Injected notifications -->
+    </div>
+  </div>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="flex-1">
+
+    <!-- 1. SCREEN 1: LOGIN SCREEN -->
+    <section id="screen-login" class="min-h-screen flex items-center justify-center p-4 bg-slate-900">
+      <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+        <div class="p-8 md:p-10 bg-slate-950 text-white flex flex-col justify-between border-r border-slate-800">
+          <div>
+            <div class="flex items-center space-x-2 mb-8">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center font-bold text-white">DF</div>
+              <span class="font-semibold text-xl tracking-tight">DealFlow360</span>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight mb-3">Enterprise Deal & Proposal Portal</h2>
+            <p class="text-slate-400 text-sm leading-relaxed mb-6">Review published quotations, collaborate on scope adjustments, negotiate commercial terms, and execute binding contracts securely.</p>
+            <div class="space-y-3 text-xs text-slate-300">
+              <div class="flex items-center space-x-2"><span class="text-emerald-400">✓</span><span>SOC2 Type II Certified Document Processing</span></div>
+              <div class="flex items-center space-x-2"><span class="text-emerald-400">✓</span><span>256-bit End-to-End Cryptographic Audit Trail</span></div>
+              <div class="flex items-center space-x-2"><span class="text-emerald-400">✓</span><span>Isolated Multi-Tenant Partner Boundary</span></div>
+            </div>
+          </div>
+          <div class="pt-8 text-xs text-slate-500">© 2026 DealFlow360 Inc. All rights reserved.</div>
+        </div>
+        <div class="p-8 md:p-10 flex flex-col justify-center">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-slate-900">Client Sign In</h3>
+            <p class="text-xs text-slate-500 mt-1">Enter your organization credentials to view active proposals.</p>
+          </div>
+          <div id="login-error-alert" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg"></div>
+          <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Corporate Email</label>
+              <input id="login-email" type="email" required value="sarah.connor@cyberdyne-defense.com" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Password</label>
+              <input id="login-password" type="password" required value="SecurePassword123!" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <label class="flex items-center space-x-2 text-slate-600">
+                <input type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                <span>Remember device</span>
+              </label>
+              <a href="javascript:void(0)" onclick="alert('Password reset link dispatched in mock demo.')" class="text-indigo-600 hover:underline">Forgot password?</a>
+            </div>
+            <button id="login-submit-btn" type="submit" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center justify-center">
+              <span>Access DealFlow Portal</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SCREEN 2: DASHBOARD -->
+    <section id="screen-dashboard" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+      <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
+          <p class="text-sm text-slate-500 mt-1">Commercial relationship and proposal pipeline for <span class="font-semibold text-slate-800">Cyberdyne Defense Systems</span>.</p>
+        </div>
+        <div class="mt-4 md:mt-0 flex space-x-3">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            ● Authorized Signatory
+          </span>
+          <button onclick="navigate('#/quotes')" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">View All Proposals</button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Action Required</div>
+          <div class="text-2xl font-bold text-slate-900 mt-2">1 Quote</div>
+          <div class="text-xs text-amber-600 font-medium mt-1">● QUO-2026-0048 awaiting review</div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Negotiation</div>
+          <div id="kpi-negotiating" class="text-2xl font-bold text-slate-900 mt-2">0 Deals</div>
+          <div class="text-xs text-slate-400 mt-1">Pending seller review</div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Pipeline Value</div>
+          <div class="text-2xl font-bold text-indigo-600 tabular-nums mt-2">$107,400.00</div>
+          <div class="text-xs text-slate-400 mt-1">USD • 1 Proposal</div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Executed Orders</div>
+          <div id="kpi-executed" class="text-2xl font-bold text-emerald-600 mt-2">0 Orders</div>
+          <div class="text-xs text-slate-400 mt-1">Lifetime binding contracts</div>
+        </div>
+      </div>
+
+      <!-- Dashboard 2-Column Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left 2 Cols: Urgent Action + Recent Quotations -->
+        <div class="lg:col-span-2 space-y-6">
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 flex items-start justify-between">
+            <div>
+              <span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-900 uppercase">Attention Required</span>
+              <h3 class="text-base font-bold text-slate-900 mt-2">Quote QUO-2026-0048 expires in 25 days</h3>
+              <p class="text-xs text-slate-600 mt-1">Enterprise Cloud Migration & Threat Defense Suite requires your review and signature.</p>
+            </div>
+            <button onclick="navigate('#/quotes/quo_8819ab2')" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm ml-4">Review & Sign</button>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-200 flex justify-between items-center">
+              <h3 class="font-semibold text-slate-900 text-sm">Recent Quotations</h3>
+              <button onclick="navigate('#/quotes')" class="text-xs text-indigo-600 hover:underline">View all</button>
+            </div>
+            <div class="divide-y divide-slate-100" id="dashboard-recent-quotes">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 1 Col: Account Executive + Activity Feed -->
+        <div class="space-y-6">
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">Dedicated Account Executive</h3>
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base">AM</div>
+              <div>
+                <div class="font-semibold text-sm text-slate-900">Alex Mercer</div>
+                <div class="text-xs text-slate-500">Senior Account Executive</div>
+              </div>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-3">
+              <div>📧 alex.mercer@dealflow360.com</div>
+              <div>📞 +1 (555) 302-8811</div>
+              <div class="text-emerald-600 font-medium">● Typically responds within 1 hour</div>
+            </div>
+            <button onclick="openDiscussionDrawer()" class="w-full mt-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition">Message Account Team</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. SCREEN 3: MY QUOTATIONS -->
+    <section id="screen-quotes" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+      <div class="pb-6 border-b border-slate-200 mb-6 flex flex-col sm:flex-row sm:items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Quotations & Proposals</h1>
+          <p class="text-sm text-slate-500 mt-1">Review active, negotiated, and completed commercial agreements.</p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-2">
+          <button onclick="loadQuotesList()" class="p-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50" title="Refresh">↻</button>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-wrap gap-2" id="quote-status-filter-pills">
+          <button onclick="filterQuotesByStatus('all')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">All (1)</button>
+          <button onclick="filterQuotesByStatus('sent')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">Action Required</button>
+          <button onclick="filterQuotesByStatus('in_negotiation')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">In Negotiation</button>
+          <button onclick="filterQuotesByStatus('approved')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">Approved</button>
+        </div>
+        <div class="flex items-center space-x-3">
+          <input id="quote-search-input" onkeyup="handleQuoteSearch(event)" type="text" placeholder="Search by Quote # or title..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Quotes Table -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+            <tr>
+              <th class="py-3.5 px-4">Quote Number</th>
+              <th class="py-3.5 px-4">Proposal Title</th>
+              <th class="py-3.5 px-4">Rev</th>
+              <th class="py-3.5 px-4 text-right">Total Amount</th>
+              <th class="py-3.5 px-4">Valid Until</th>
+              <th class="py-3.5 px-4">Status</th>
+              <th class="py-3.5 px-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="quotes-table-body" class="divide-y divide-slate-100">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. SCREEN 4: QUOTATION DETAILS -->
+    <section id="screen-quote-detail" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+      <!-- Back button & Top bar -->
+      <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+        <div class="flex items-center space-x-3">
+          <button onclick="navigate('#/quotes')" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-medium">← All Quotes</button>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 id="qd-quote-number" class="text-xl font-bold text-slate-900 tracking-tight">QUO-2026-0048</h1>
+              <span id="qd-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">Sent • Awaiting Review</span>
+            </div>
+            <p id="qd-title" class="text-xs text-slate-500 mt-0.5">Enterprise Cloud Migration & Threat Defense Suite</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="downloadQuotePdf()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1">
+            <span>Download PDF</span>
+          </button>
+          <button onclick="openRevisionsModal()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
+            Revision History
+          </button>
+          <button onclick="openDiscussionDrawer()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
+            Discussion (<span id="qd-comment-count">1</span>)
+          </button>
+          <div class="h-6 w-px bg-slate-200 mx-1"></div>
+          <button onclick="openRejectModal()" class="px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium">Decline</button>
+          <button onclick="openNegotiateWorkspace()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium shadow-sm">Negotiate / Counter</button>
+          <button id="qd-btn-accept" onclick="openAcceptModal()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center space-x-1">
+            <span>Accept & Sign Quote</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Negotiation Alert Banner (if in negotiation) -->
+      <div id="qd-negotiation-banner" class="hidden mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Negotiation In Progress</span>
+          <p class="text-xs text-amber-900 mt-0.5">Your counter-discount proposal of 10% is currently undergoing Commercial Management Review with sales leadership.</p>
+        </div>
+        <span class="px-2.5 py-1 rounded bg-amber-200 text-amber-900 text-xs font-semibold">Tier 1 / 2</span>
+      </div>
+
+      <!-- Document Meta Details Card -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm mb-6 grid grid-cols-1 md:grid-cols-4 gap-6 text-xs">
+        <div>
+          <span class="text-slate-400 font-medium">Client Organization</span>
+          <div class="font-semibold text-slate-800 mt-1">Cyberdyne Defense Systems</div>
+          <div class="text-slate-500">Sunnyvale, CA</div>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium">Seller Organization</span>
+          <div class="font-semibold text-slate-800 mt-1">DealFlow360 Enterprise</div>
+          <div class="text-slate-500">Rep: Alex Mercer</div>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium">Issued Date</span>
+          <div id="qd-created-at" class="font-semibold text-slate-800 mt-1">2026-09-01</div>
+          <div class="text-slate-500">Revision #1</div>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium">Expiration Date</span>
+          <div id="qd-expires-at" class="font-semibold text-amber-600 mt-1">2026-09-30 (Valid)</div>
+          <div class="text-slate-500">Payment: Net 30</div>
+        </div>
+      </div>
+
+      <!-- Line Items Table -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 class="font-bold text-sm text-slate-900">Deliverables & Line Items</h3>
+          <button onclick="openChangeRequestDrawer()" class="text-xs text-indigo-600 hover:underline">Request Scope / Quantity Changes</button>
+        </div>
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-6">Item / Specification</th>
+              <th class="py-3 px-4 text-center">Qty</th>
+              <th class="py-3 px-4 text-right">Unit Price</th>
+              <th class="py-3 px-4 text-right">Tax (7.4%)</th>
+              <th class="py-3 px-6 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody id="qd-line-items-body" class="divide-y divide-slate-100">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Terms & Financial Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm text-xs">
+          <h4 class="font-bold text-slate-900 text-sm mb-3">Terms & Stipulations</h4>
+          <p class="text-slate-600 leading-relaxed mb-4">Payment due Net 30 days from invoice date. Implementation kickoff starts within 14 days of signature. Includes standard Level-2 support SLA with 24/7 critical coverage.</p>
+          <div class="text-slate-400">Governing Law: State of California • Contract ID: QUO-2026-0048</div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm text-xs space-y-3">
+          <div class="flex justify-between text-slate-600">
+            <span>Subtotal</span>
+            <span id="qd-subtotal" class="font-medium tabular-nums">$100,000.00</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>Commercial Discount</span>
+            <span id="qd-discount" class="font-medium text-emerald-600 tabular-nums">-$0.00</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>Estimated Taxes (7.4%)</span>
+            <span id="qd-tax" class="font-medium tabular-nums">$7,400.00</span>
+          </div>
+          <div class="border-t border-slate-200 pt-3 flex justify-between items-baseline">
+            <span class="text-sm font-bold text-slate-900">Total Contract Value</span>
+            <span id="qd-total" class="text-2xl font-extrabold text-indigo-600 tabular-nums">$107,400.00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. SCREEN 5: NEGOTIATION WORKSPACE -->
+    <section id="screen-negotiate" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+      <div class="flex items-center justify-between pb-6 border-b border-slate-200 mb-6">
+        <div>
+          <button onclick="navigate('#/quotes/quo_8819ab2')" class="text-xs text-slate-500 hover:text-slate-800 mb-1">← Cancel & Back to Quote</button>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Negotiation Workspace</h1>
+          <p class="text-xs text-slate-500">Construct a structured counter-proposal with live financial modeling.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left: Current Quote Summary -->
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <h3 class="font-bold text-sm text-slate-900 mb-4">Active Proposal Reference</h3>
+          <div class="space-y-4 text-xs">
+            <div class="p-3 bg-slate-50 rounded-lg">
+              <div class="font-semibold text-slate-800">Core Security Infrastructure License</div>
+              <div class="text-slate-500">Qty: 1.0 • $87,500.00</div>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg">
+              <div class="font-semibold text-slate-800">On-Site Implementation Workshop</div>
+              <div class="text-slate-500">Qty: 5.0 • $12,500.00</div>
+            </div>
+            <div class="border-t border-slate-200 pt-3 flex justify-between font-bold text-sm">
+              <span>Current Total:</span>
+              <span class="text-slate-900">$107,400.00 USD</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Counter Offer Builder -->
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <h3 class="font-bold text-sm text-slate-900">Your Proposed Terms</h3>
+
+          <!-- Discount Slider -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-2">Requested Commercial Discount</label>
+            <div class="flex items-center space-x-4">
+              <input id="nw-discount-slider" oninput="updateNegotiationMath()" type="range" min="1" max="25" value="10" class="w-full accent-indigo-600">
+              <span id="nw-discount-val" class="font-bold text-indigo-600 text-sm w-12 text-right">10%</span>
+            </div>
+          </div>
+
+          <!-- Impact Comparison -->
+          <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl space-y-2 text-xs">
+            <div class="flex justify-between text-indigo-900">
+              <span>Original Total:</span>
+              <span class="tabular-nums font-semibold">$107,400.00</span>
+            </div>
+            <div class="flex justify-between text-emerald-700 font-semibold">
+              <span>Projected Savings:</span>
+              <span id="nw-savings" class="tabular-nums">-$10,740.00</span>
+            </div>
+            <div class="border-t border-indigo-200 pt-2 flex justify-between text-indigo-950 font-bold text-sm">
+              <span>New Projected Total:</span>
+              <span id="nw-projected" class="tabular-nums">$96,660.00</span>
+            </div>
+          </div>
+
+          <!-- Justification -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Business Rationale / Executive Budget Note</label>
+            <textarea id="nw-justification" rows="3" placeholder="Explain your budget constraint or justification..." class="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">Ceiling of $97,000 approved by executive board for FY26.</textarea>
+          </div>
+
+          <!-- Concession checkbox -->
+          <label class="flex items-center space-x-2 text-xs text-slate-600">
+            <input id="nw-concession" type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            <span>Willing to accept Net 15 accelerated payment terms in exchange.</span>
+          </label>
+
+          <button onclick="submitCounterDiscountFromWorkspace()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+            Submit Counter-Proposal to Sales Leadership
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. SCREEN 10: CONFIRMATION & E-SIGN MODAL (SCREEN 10) -->
+    <div id="modal-esign" class="hidden fixed inset-0 bg-slate-900/60 drawer-overlay z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-4">
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Legal Agreement & E-Signature</h3>
+            <p class="text-xs text-slate-500">Quote QUO-2026-0048 • Final Contract Execution</p>
+          </div>
+          <button onclick="closeAcceptModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div class="p-3 bg-slate-50 rounded-lg flex justify-between font-semibold">
+            <span>Binding Contract Total:</span>
+            <span class="text-indigo-600 font-bold text-sm">$107,400.00 USD</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Corporate Purchase Order (PO) Number</label>
+            <input id="esign-po" type="text" value="PO-CYBER-9910" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Authorized Signatory Name</label>
+            <input id="esign-name" type="text" value="Sarah Connor" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Signatory Title</label>
+            <input id="esign-title" type="text" value="Chief Technology Officer" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+          </div>
+
+          <!-- Digital Signature Canvas -->
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Draw Digital Signature</label>
+            <div class="border-2 border-dashed border-slate-300 rounded-lg h-28 bg-slate-50 relative flex items-center justify-center">
+              <canvas id="signature-canvas" width="450" height="110" class="w-full h-full cursor-crosshair"></canvas>
+              <button onclick="clearSignatureCanvas()" type="button" class="absolute bottom-2 right-2 text-[10px] bg-slate-200 hover:bg-slate-300 px-2 py-0.5 rounded text-slate-700">Clear</button>
+            </div>
+          </div>
+
+          <label class="flex items-start space-x-2 text-[11px] text-slate-600">
+            <input id="esign-terms-check" type="checkbox" checked class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+            <span>I confirm that I am authorized to bind Cyberdyne Defense Systems and accept all terms and conditions of this agreement.</span>
+          </label>
+
+          <div class="text-[10px] text-slate-400 text-center">Your IP address and UTC timestamp will be cryptographically logged with this signature.</div>
+
+          <button id="esign-submit-btn" onclick="submitQuoteAcceptance()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs shadow-sm transition">
+            Confirm & Legally Execute Agreement
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. SCREEN 11: CONFIRMATION SUCCESS -->
+    <section id="screen-confirmed" class="max-w-2xl mx-auto px-4 py-16 text-center hidden">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 font-bold">✓</div>
+      <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Agreement Successfully Executed!</h1>
+      <p class="text-xs text-slate-600 mt-2">Quote QUO-2026-0048 has been formally signed and converted into confirmed Sales Order <span id="conf-so-num" class="font-bold text-slate-900">SO-2026-1184</span>.</p>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-6 text-left text-xs my-6 space-y-2 shadow-sm">
+        <div class="flex justify-between py-1 border-b border-slate-100">
+          <span class="text-slate-500">Signatory:</span>
+          <span id="conf-signer" class="font-semibold text-slate-800">Sarah Connor (CTO)</span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100">
+          <span class="text-slate-500">Confirmed At:</span>
+          <span id="conf-date" class="font-semibold text-slate-800">2026-09-05 10:42 UTC</span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100">
+          <span class="text-slate-500">Total Contract Value:</span>
+          <span class="font-bold text-indigo-600">$107,400.00 USD</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-slate-500">Audit Confirmation ID:</span>
+          <span class="font-mono text-slate-600">cnf_381902</span>
+        </div>
+      </div>
+
+      <div class="flex justify-center space-x-3">
+        <button onclick="downloadQuotePdf()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm">Download Signed PDF</button>
+        <button onclick="navigate('#/dashboard')" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">Return to Dashboard</button>
+      </div>
+    </section>
+
+    <!-- 12. SCREEN 12: EXPIRED QUOTE -->
+    <section id="screen-expired" class="max-w-2xl mx-auto px-4 py-16 text-center hidden">
+      <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">⏱</div>
+      <h1 class="text-2xl font-bold text-slate-900 tracking-tight">This Quotation Has Expired</h1>
+      <p class="text-xs text-slate-600 mt-2 max-w-md mx-auto">Quote QUO-2026-0048 passed its validity ceiling on August 31, 2026. Deliverables and pricing terms are no longer binding.</p>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-6 text-left text-xs my-6 shadow-sm">
+        <h4 class="font-bold text-slate-900 mb-2">Request Quote Re-activation</h4>
+        <p class="text-slate-500 mb-4">Click below to dispatch an automated re-activation request to Alex Mercer.</p>
+        <button onclick="submitReactivation()" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold">Request Re-activation & Extension</button>
+      </div>
+      <button onclick="navigate('#/quotes')" class="text-xs text-indigo-600 hover:underline">← Return to active quotations</button>
+    </section>
+
+    <!-- 13. SCREEN 13: ACCESS DENIED (403) -->
+    <section id="screen-403" class="max-w-2xl mx-auto px-4 py-16 text-center hidden">
+      <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">🔒</div>
+      <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Signatory Authorization Required</h1>
+      <p class="text-xs text-slate-600 mt-2 max-w-md mx-auto">Your account is authenticated as a Team Member with read access, but does not have legal signatory privileges for Cyberdyne Defense Systems.</p>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-6 text-left text-xs my-6 shadow-sm space-y-3">
+        <div>1. Contact your account administrator Sarah Connor to authorize signature rights.</div>
+        <div>2. Or request signatory privileges from your organization admin.</div>
+        <button onclick="alert('Signatory upgrade request dispatched.')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold mt-2">Request Signatory Rights</button>
+      </div>
+      <button onclick="navigate('#/dashboard')" class="text-xs text-indigo-600 hover:underline">← Back to dashboard</button>
+    </section>
+
+    <!-- 6. SCREEN 6: LINE-LEVEL DISCUSSION DRAWER -->
+    <div id="drawer-discussion" class="hidden fixed inset-0 z-50 overflow-hidden">
+      <div onclick="closeDiscussionDrawer()" class="absolute inset-0 bg-slate-900/50 drawer-overlay"></div>
+      <div class="fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Quote Discussion</h3>
+            <p class="text-xs text-slate-500">Direct message stream with Alex Mercer</p>
+          </div>
+          <button onclick="closeDiscussionDrawer()" class="text-slate-400 hover:text-slate-600 text-base">✕</button>
+        </div>
+        <div id="discussion-stream" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+          <!-- Injected comments -->
+        </div>
+        <div class="p-4 border-t border-slate-200 bg-white">
+          <form onsubmit="handleSendComment(event)" class="space-y-2">
+            <textarea id="comment-input" required rows="2" placeholder="Ask a question about deliverables or SLA..." class="w-full p-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+            <div class="flex justify-between items-center">
+              <span class="text-[10px] text-slate-400">Press Cmd+Enter to send</span>
+              <button type="submit" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium">Send Message</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. SCREEN 7: CHANGE REQUEST DRAWER -->
+    <div id="drawer-change-request" class="hidden fixed inset-0 z-50 overflow-hidden">
+      <div onclick="closeChangeRequestDrawer()" class="absolute inset-0 bg-slate-900/50 drawer-overlay"></div>
+      <div class="fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200 p-6 overflow-y-auto">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-200 mb-4">
+          <h3 class="font-bold text-sm text-slate-900">Request Scope Changes</h3>
+          <button onclick="closeChangeRequestDrawer()" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <div class="space-y-4 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">On-Site Implementation Workshops</label>
+            <div class="flex items-center space-x-3">
+              <span class="text-slate-500">Requested Days:</span>
+              <input id="cr-workshop-qty" type="number" min="1" max="10" value="3" class="w-16 p-1 border border-slate-300 rounded text-center">
+              <span class="text-slate-400">(Originally 5)</span>
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Requested Payment Terms</label>
+            <select id="cr-payment-terms" class="w-full p-2 border border-slate-300 rounded-lg">
+              <option value="Net 30">Net 30 (Current)</option>
+              <option value="Net 45" selected>Net 45</option>
+              <option value="Net 60">Net 60</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Reason for Adjustment</label>
+            <textarea id="cr-reason" rows="3" class="w-full p-2 border border-slate-300 rounded-lg">Team scheduling constraints limit initial training capacity to 3 days.</textarea>
+          </div>
+          <button onclick="submitChangeRequest()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-sm">Submit Change Request</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. SCREEN 9: REVISION HISTORY MODAL -->
+    <div id="modal-revisions" class="hidden fixed inset-0 bg-slate-900/60 drawer-overlay z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-4">
+          <h3 class="font-bold text-base text-slate-900">Revision History & Diff Comparison</h3>
+          <button onclick="closeRevisionsModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <div class="space-y-4 text-xs">
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="flex justify-between font-bold text-slate-800">
+              <span>Revision #2 (Current)</span>
+              <span class="text-emerald-600">$99,900.00 USD</span>
+            </div>
+            <p class="text-slate-500 mt-1">Adjusted training workshops from 5 to 3 and applied 5% courtesy discount.</p>
+          </div>
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="flex justify-between font-bold text-slate-800">
+              <span>Revision #1 (Initial)</span>
+              <span class="text-slate-600">$107,400.00 USD</span>
+            </div>
+            <p class="text-slate-500 mt-1">Initial publication by Alex Mercer.</p>
+          </div>
+          <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-900 flex justify-between">
+            <span class="font-semibold">Net Variance:</span>
+            <span class="font-bold text-emerald-700">-$7,500.00 (-7.0%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT STATE ENGINE & API CONTROLLER -->
+  <script>
+    const API_BASE = window.location.origin + '/api/v1/portal';
+    let AUTH_TOKEN = 'mock_jwt_access_token_usr_c91f0e4b81';
+    let CURRENT_QUOTE = null;
+
+    // Canvas drawing setup for E-sign
+    let canvas, ctx, drawing = false;
+
+    function initCanvas() {
+      canvas = document.getElementById('signature-canvas');
+      if (!canvas) return;
+      ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#0F172A';
+
+      canvas.addEventListener('mousedown', (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+      canvas.addEventListener('mousemove', (e) => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+      window.addEventListener('mouseup', () => { drawing = false; });
+    }
+
+    function clearSignatureCanvas() {
+      if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Router
+    function navigate(hash) {
+      window.location.hash = hash;
+      renderRoute();
+    }
+
+    function renderRoute() {
+      const hash = window.location.hash || '#/login';
+      const isAuth = !!AUTH_TOKEN;
+
+      // Hide all screens
+      ['screen-login', 'screen-dashboard', 'screen-quotes', 'screen-quote-detail', 'screen-negotiate', 'screen-confirmed', 'screen-expired', 'screen-403'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      const topNav = document.getElementById('top-navbar');
+
+      if (!isAuth || hash === '#/login') {
+        topNav.classList.add('hidden');
+        document.getElementById('screen-login').classList.remove('hidden');
+        return;
+      }
+
+      topNav.classList.remove('hidden');
+
+      if (hash === '#/dashboard') {
+        document.getElementById('screen-dashboard').classList.remove('hidden');
+        loadDashboardData();
+      } else if (hash === '#/quotes') {
+        document.getElementById('screen-quotes').classList.remove('hidden');
+        loadQuotesList();
+      } else if (hash.startsWith('#/quotes/')) {
+        const quoteId = hash.split('/')[2];
+        document.getElementById('screen-quote-detail').classList.remove('hidden');
+        loadQuoteDetail(quoteId);
+      } else if (hash.includes('/negotiate')) {
+        document.getElementById('screen-negotiate').classList.remove('hidden');
+        updateNegotiationMath();
+      } else if (hash === '#/confirmed') {
+        document.getElementById('screen-confirmed').classList.remove('hidden');
+      } else if (hash === '#/expired') {
+        document.getElementById('screen-expired').classList.remove('hidden');
+      } else if (hash === '#/403') {
+        document.getElementById('screen-403').classList.remove('hidden');
+      }
+    }
+
+    // API Helpers
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (AUTH_TOKEN) headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : null
+      });
+
+      if (res.status === 401) {
+        AUTH_TOKEN = null;
+        navigate('#/login');
+        throw new Error('Unauthorized');
+      }
+
+      return res.json();
+    }
+
+    // Auth
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('login-submit-btn');
+
+      btn.disabled = true;
+      btn.innerText = 'Authenticating...';
+
+      try {
+        const res = await apiRequest('/auth/login', 'POST', { email, password });
+        AUTH_TOKEN = res.access_token;
+        document.getElementById('login-error-alert').classList.add('hidden');
+        navigate('#/dashboard');
+      } catch (err) {
+        const alertBox = document.getElementById('login-error-alert');
+        alertBox.innerText = 'Invalid credentials. Please verify your email and password.';
+        alertBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Access DealFlow Portal';
+      }
+    }
+
+    function handleLogout() {
+      AUTH_TOKEN = null;
+      navigate('#/login');
+    }
+
+    // Dashboard
+    async function loadDashboardData() {
+      try {
+        const quotesRes = await apiRequest('/quotes');
+        const quotes = quotesRes.data;
+
+        const container = document.getElementById('dashboard-recent-quotes');
+        container.innerHTML = quotes.map(q => `
+          <div class="px-5 py-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer" onclick="navigate('#/quotes/${q.quote_id}')">
+            <div>
+              <div class="font-semibold text-xs text-slate-800">${q.quote_number} • ${q.title}</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">Expires: ${q.expiration_date.split('T')[0]} • Rep: ${q.sales_rep.name}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-xs tabular-nums text-slate-900">$${q.total_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+              <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${q.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'}">${q.status.toUpperCase()}</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Quotes List
+    async function loadQuotesList() {
+      try {
+        const res = await apiRequest('/quotes');
+        const tbody = document.getElementById('quotes-table-body');
+        tbody.innerHTML = res.data.map(q => `
+          <tr class="hover:bg-slate-50 cursor-pointer border-b border-slate-100" onclick="navigate('#/quotes/${q.quote_id}')">
+            <td class="py-3 px-4 font-semibold text-indigo-600">${q.quote_number}</td>
+            <td class="py-3 px-4 font-medium text-slate-800">${q.title}</td>
+            <td class="py-3 px-4 text-slate-500">Rev ${q.revision_number}</td>
+            <td class="py-3 px-4 text-right font-bold tabular-nums text-slate-900">$${q.total_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <td class="py-3 px-4 text-slate-500">${q.expiration_date.split('T')[0]}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${q.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : (q.status === 'in_negotiation' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800')}">
+                ${q.status.toUpperCase()}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <button class="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 rounded font-medium text-slate-700">Review</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Quote Detail
+    async function loadQuoteDetail(quoteId) {
+      const container = document.getElementById('screen-quote-detail');
+      try {
+        if (window.DFComponents && window.DFComponents.QuoteDetailContainer) {
+          container.innerHTML = window.DFComponents.QuoteDetailContainer({ isLoading: true });
+        }
+        const [q, neg, userRes] = await Promise.all([
+          apiRequest(`/quotes/${quoteId}`),
+          apiRequest(`/quotes/${quoteId}/negotiation/status`).catch(() => null),
+          apiRequest('/auth/me').catch(() => null)
+        ]);
+        CURRENT_QUOTE = q;
+
+        if (window.DFComponents && window.DFComponents.QuoteDetailContainer) {
+          container.innerHTML = window.DFComponents.QuoteDetailContainer({
+            isLoading: false,
+            quote: q,
+            negotiation: neg,
+            user: userRes || { can_sign_quotes: true }
+          });
+        }
+      } catch (e) {
+        if (window.DFComponents && window.DFComponents.QuoteDetailContainer) {
+          container.innerHTML = window.DFComponents.QuoteDetailContainer({
+            isLoading: false,
+            error: {
+              status: e.status || 500,
+              code: e.code || 'QUOTE_LOAD_ERROR',
+              title: e.status === 404 ? 'Quotation Not Found' : 'Unable to load proposal',
+              message: e.message || 'The quotation could not be retrieved from the server.'
+            }
+          });
+        }
+        console.error(e);
+      }
+    }
+
+    // Negotiation Math
+    function updateNegotiationMath() {
+      const slider = document.getElementById('nw-discount-slider');
+      const val = parseInt(slider.value);
+      document.getElementById('nw-discount-val').innerText = `${val}%`;
+
+      const original = 107400.00;
+      const savings = original * (val / 100);
+      const projected = original - savings;
+
+      document.getElementById('nw-savings').innerText = `-$${savings.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+      document.getElementById('nw-projected').innerText = `$${projected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+    }
+
+    async function submitCounterDiscountFromWorkspace() {
+      const val = parseInt(document.getElementById('nw-discount-slider').value);
+      const notes = document.getElementById('nw-justification').value;
+      await apiRequest('/quotes/quo_8819ab2/negotiation/counter-discount', 'POST', {
+        discount_type: 'percentage',
+        requested_discount_percent: val,
+        customer_budget_notes: notes
+      });
+      alert('Counter-discount proposal submitted to account team!');
+      navigate('#/quotes/quo_8819ab2');
+    }
+
+    // E-Sign Modal
+    function openAcceptModal() {
+      document.getElementById('modal-esign').classList.remove('hidden');
+      setTimeout(initCanvas, 50);
+    }
+    function closeAcceptModal() {
+      document.getElementById('modal-esign').classList.add('hidden');
+    }
+
+    async function submitQuoteAcceptance() {
+      const signer_name = document.getElementById('esign-name').value;
+      const signer_title = document.getElementById('esign-title').value;
+      const po_num = document.getElementById('esign-po').value;
+
+      const btn = document.getElementById('esign-submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Sealing Agreement...';
+
+      try {
+        const res = await apiRequest('/quotes/quo_8819ab2/accept', 'POST', {
+          signer_name,
+          signer_title,
+          signature_type: 'drawn',
+          signature_data: 'data:image/png;base64,mock...',
+          accepted_terms: true,
+          purchase_order_number: po_num
+        });
+        closeAcceptModal();
+        navigate('#/confirmed');
+      } catch (e) {
+        alert('Failed to execute agreement.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Confirm & Legally Execute Agreement';
+      }
+    }
+
+    function openDiscussionDrawer() {
+      document.getElementById('drawer-discussion').classList.remove('hidden');
+      loadDiscussionComments();
+    }
+    function closeDiscussionDrawer() {
+      document.getElementById('drawer-discussion').classList.add('hidden');
+    }
+
+    async function loadDiscussionComments() {
+      const res = await apiRequest('/quotes/quo_8819ab2/comments');
+      const container = document.getElementById('discussion-stream');
+      container.innerHTML = res.data.map(c => `
+        <div class="p-3 rounded-lg ${c.author.type === 'customer' ? 'bg-indigo-50 border border-indigo-100 ml-4' : 'bg-slate-100 mr-4'}">
+          <div class="flex justify-between text-[11px] font-semibold text-slate-800">
+            <span>${c.author.name} (${c.author.type === 'customer' ? 'You' : 'Seller Rep'})</span>
+            <span class="text-slate-400 font-normal">${c.created_at.split('T')[0]}</span>
+          </div>
+          <p class="text-slate-700 mt-1">${c.message}</p>
+        </div>
+      `).join('');
+    }
+
+    async function handleSendComment(e) {
+      e.preventDefault();
+      const input = document.getElementById('comment-input');
+      const message = input.value;
+      if (!message) return;
+
+      await apiRequest('/quotes/quo_8819ab2/comments', 'POST', { message });
+      input.value = '';
+      loadDiscussionComments();
+    }
+
+    function openChangeRequestDrawer() { document.getElementById('drawer-change-request').classList.remove('hidden'); }
+    function closeChangeRequestDrawer() { document.getElementById('drawer-change-request').classList.add('hidden'); }
+    async function submitChangeRequest() {
+      const qty = parseInt(document.getElementById('cr-workshop-qty').value);
+      const terms = document.getElementById('cr-payment-terms').value;
+      await apiRequest('/quotes/quo_8819ab2/negotiation/change-request', 'POST', {
+        line_item_changes: [{ line_id: 'line_4021', requested_quantity: qty }],
+        terms_changes: [{ term_type: 'payment_terms', requested_value: terms }]
+      });
+      alert('Change request submitted.');
+      closeChangeRequestDrawer();
+      navigate('#/quotes/quo_8819ab2');
+    }
+
+    function openRevisionsModal() { document.getElementById('modal-revisions').classList.remove('hidden'); }
+    function closeRevisionsModal() { document.getElementById('modal-revisions').classList.add('hidden'); }
+
+    function openRejectModal() {
+      if (confirm('Are you sure you want to decline this quote?')) {
+        apiRequest('/quotes/quo_8819ab2/reject', 'POST', { rejection_reason_code: 'budget_unavailable' })
+          .then(() => { alert('Quote declined.'); navigate('#/quotes'); });
+      }
+    }
+
+    function downloadQuotePdf() {
+      window.open(`${API_BASE}/quotes/quo_8819ab2/pdf`, '_blank');
+    }
+
+    function submitReactivation() {
+      alert('Re-activation request dispatched to Alex Mercer.');
+      navigate('#/quotes');
+    }
+
+    function toggleNotifications() {
+      const dropdown = document.getElementById('notif-dropdown');
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        apiRequest('/notifications').then(res => {
+          document.getElementById('notif-list').innerHTML = res.data.map(n => `
+            <div class="p-2 hover:bg-slate-50 rounded">
+              <div class="font-semibold text-slate-800">${n.title}</div>
+              <div class="text-slate-500">${n.message}</div>
+            </div>
+          `).join('');
+        });
+      }
+    }
+
+    function markAllNotificationsRead() {
+      apiRequest('/notifications/read-all', 'PATCH').then(() => {
+        document.getElementById('notif-badge').classList.add('hidden');
+        alert('All notifications marked as read.');
+      });
+    }
+
+    // Initialize
+    window.addEventListener('hashchange', renderRoute);
+    window.addEventListener('load', () => {
+      if (!window.location.hash) window.location.hash = '#/login';
+      renderRoute();
+    });
+  </script>
+
+  <!-- DealFlow360 API Transport & State Primitives -->
+  <script src="/js/api/PortalApiError.js"></script>
+  <script src="/js/api/TokenStore.js"></script>
+  <script src="/js/api/QueryCache.js"></script>
+  <script src="/js/api/ApiClient.js"></script>
+
+  <!-- DealFlow360 Domain Services -->
+  <script src="/js/services/AuthService.js"></script>
+  <script src="/js/services/QuoteService.js"></script>
+  <script src="/js/services/QuoteDetailService.js"></script>
+  <script src="/js/services/NegotiationService.js"></script>
+  <script src="/js/services/CommentService.js"></script>
+  <script src="/js/services/RevisionService.js"></script>
+  <script src="/js/services/ConfirmationService.js"></script>
+  <script src="/js/services/NotificationService.js"></script>
+  <script src="/js/services/StatusService.js"></script>
+  <script src="/js/services/index.js"></script>
+
+  <!-- DealFlow360 Reusable Foundation Components -->
+  <script src="/js/components/badges/QuoteStatusBadge.js"></script>
+  <script src="/js/components/badges/NegotiationStatusBadge.js"></script>
+  <script src="/js/components/layout/CustomerIdentity.js"></script>
+  <script src="/js/components/layout/PortalHeader.js"></script>
+  <script src="/js/components/layout/MainContentArea.js"></script>
+  <script src="/js/components/layout/PortalLayout.js"></script>
+  <script src="/js/components/navigation/BreadcrumbTrail.js"></script>
+  <script src="/js/components/overlays/ModalDialog.js"></script>
+  <script src="/js/components/overlays/SlideOverDrawer.js"></script>
+  <script src="/js/components/overlays/ConfirmationDialog.js"></script>
+  <script src="/js/components/feedback/ToastSystem.js"></script>
+  <script src="/js/components/feedback/LoadingSkeleton.js"></script>
+  <script src="/js/components/feedback/ErrorView.js"></script>
+  <script src="/js/components/feedback/EmptyStateView.js"></script>
+  <script src="/js/components/quotes/QuoteFilterBar.js"></script>
+  <script src="/js/components/quotes/QuoteTable.js"></script>
+  <script src="/js/components/quotes/QuoteCard.js"></script>
+  <script src="/js/components/quotes/QuotePagination.js"></script>
+  <script src="/js/components/quotes/QuoteListContainer.js"></script>
+  <script src="/js/components/detail/QuoteDetailHeader.js"></script>
+  <script src="/js/components/detail/QuoteNegotiationBanner.js"></script>
+  <script src="/js/components/detail/QuoteLineItemsTable.js"></script>
+  <script src="/js/components/detail/QuotePricingSummary.js"></script>
+  <script src="/js/components/detail/QuoteCommercialTerms.js"></script>
+  <script src="/js/components/detail/QuoteSalesRepCard.js"></script>
+  <script src="/js/components/detail/QuoteDetailContainer.js"></script>
+  <script src="/js/components/comments/LineCommentBadge.js"></script>
+  <script src="/js/components/comments/CommentMessageBubble.js"></script>
+  <script src="/js/components/comments/CommentComposer.js"></script>
+  <script src="/js/components/comments/LineDiscussionDrawer.js"></script>
+  <script src="/js/components/index.js"></script>
+</body>
+</html>
