@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
 # Environment Secrets
@@ -20,3 +20,8 @@ Thumbs.db
 coverage/
 dist/
 build/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
