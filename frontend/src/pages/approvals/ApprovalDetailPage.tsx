@@ -61,30 +61,30 @@ export function ApprovalDetailPage() {
     );
   }
 
-  const handleApprove = (comment?: string) => {
+  const handleApprove = (comment?: string, approverName?: string, roleOverride?: string) => {
     approveMutation.mutate({
       id: approval.id,
       comment,
-      approverName: user?.name || 'Maria Chen',
-      role: role || 'SALES_MANAGER',
+      approverName: approverName || user?.name || 'Maria Chen',
+      role: (roleOverride as any) || role || 'SALES_MANAGER',
     });
   };
 
-  const handleReject = (reason: string) => {
+  const handleReject = (reason: string, approverName?: string, roleOverride?: string) => {
     rejectMutation.mutate({
       id: approval.id,
       reason,
-      approverName: user?.name || 'Maria Chen',
-      role: role || 'SALES_MANAGER',
+      approverName: approverName || user?.name || 'Maria Chen',
+      role: (roleOverride as any) || role || 'SALES_MANAGER',
     });
   };
 
-  const handleReturn = (feedback: string) => {
+  const handleReturn = (feedback: string, approverName?: string, roleOverride?: string) => {
     returnMutation.mutate({
       id: approval.id,
       feedback,
-      approverName: user?.name || 'Maria Chen',
-      role: role || 'SALES_MANAGER',
+      approverName: approverName || user?.name || 'Maria Chen',
+      role: (roleOverride as any) || role || 'SALES_MANAGER',
     });
   };
 

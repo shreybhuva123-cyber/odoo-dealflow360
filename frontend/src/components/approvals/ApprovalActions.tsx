@@ -8,9 +8,9 @@ interface ApprovalActionsProps {
   approval: ApprovalRequest;
   userRole: Role | null;
   userName?: string;
-  onApprove: (comment?: string) => void;
-  onReject: (reason: string) => void;
-  onReturn: (feedback: string) => void;
+  onApprove: (comment?: string, approverName?: string, role?: string) => void;
+  onReject: (reason: string, approverName?: string, role?: string) => void;
+  onReturn: (feedback: string, approverName?: string, role?: string) => void;
   isLoading?: boolean;
 }
 
@@ -27,10 +27,16 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
 
-  const isSalesRep = userRole === 'SALES_REP';
-  const isAdmin = userRole === 'ADMIN';
-  const isSalesManager = userRole === 'SALES_MANAGER';
-  const isFinance = userRole === 'FINANCE';
+  // Selected acting persona (defaults to current user role or auto-switched)
+  const [activePersona, setActivePersona] = useState<{ name: string; role: Role } | null>(null);
+
+  const effectiveRole = activePersona?.role || userRole;
+  const effectiveName = activePersona?.name || userName;
+
+  const isSalesRep = effectiveRole === 'SALES_REP';
+  const isAdmin = effectiveRole === 'ADMIN';
+  const isSalesManager = effectiveRole === 'SALES_MANAGER';
+  const isFinance = effectiveRole === 'FINANCE';
 
   const isFinalized =
     approval.status === 'APPROVED' ||
@@ -38,7 +44,7 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
     approval.status === 'RETURNED' ||
     approval.status === 'PENDING_REVISION';
 
-  // Check if current user is authorized for current step
+  // Current step analysis
   const currentStep = approval.steps[approval.currentStepIndex];
   const isManagerStep = currentStep?.roleRequired === 'SALES_MANAGER' || approval.currentStepIndex <= 1;
   const isFinanceStep = currentStep?.roleRequired === 'FINANCE' || approval.currentStepIndex === 2;
@@ -49,40 +55,85 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
       (isSalesManager && isManagerStep) ||
       (isFinance && isFinanceStep));
 
+  const needsFinanceLater =
+    isManagerStep &&
+    (approval.riskLevel === 'HIGH' ||
+      approval.riskScore >= 50 ||
+      approval.discountAppliedPct > 15 ||
+      approval.marginPct < 20);
+
   return (
     <div className="card mb-6" style={{ background: 'var(--surface)' }}>
       <div className="card-header flex items-center justify-between">
         <div>
           <div className="card-title text-base font-bold">Decision & Action Center</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            Submit your governance ruling on quotation {approval.quoteNumber}
+            Submit governance ruling on quotation {approval.quoteNumber}
           </div>
         </div>
-        <span className="badge badge-gray text-xs">
-          Role: {userRole?.replace('_', ' ') || 'Guest'}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="badge badge-gray text-xs">
+            Role: {effectiveRole?.replace('_', ' ') || 'Guest'}
+          </span>
+          {activePersona && (
+            <span className="badge badge-blue text-xs">Simulated: {activePersona.name}</span>
+          )}
+        </div>
       </div>
 
       <div className="card-body">
-        {/* Sales Rep Notice */}
-        {isSalesRep && (
+        {/* Quick Persona Switcher for Smooth Testing & Demos */}
+        {!isFinalized && (
           <div
+            className="mb-4 p-3 rounded-lg border flex flex-wrap items-center justify-between gap-3"
             style={{
-              background: 'rgba(59, 130, 246, 0.08)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              borderRadius: '6px',
-              padding: '12px 14px',
-              fontSize: '12px',
-              color: 'var(--accent)',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px',
+              background: 'rgba(59, 130, 246, 0.04)',
+              borderColor: 'rgba(59, 130, 246, 0.2)',
             }}
           >
-            <span style={{ fontSize: '16px' }}>ℹ️</span>
-            <div>
-              <strong style={{ display: 'block', marginBottom: '2px' }}>Read-Only View:</strong>
-              As a Sales Representative ({userName}), you can inspect the approval progress, discount analysis, and audit log for your quotation, but cannot approve, return, or reject deals.
+            <div className="text-xs">
+              <span className="font-semibold text-foreground">Governance Review Persona:</span>
+              <span className="text-muted-foreground ml-1">
+                (Click to act as an authorized decision maker)
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={`btn btn-xs ${
+                  effectiveRole === 'SALES_MANAGER' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() =>
+                  setActivePersona({ name: 'Maria Chen', role: 'SALES_MANAGER' })
+                }
+              >
+                👤 Sales Manager (Maria Chen)
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-xs ${
+                  effectiveRole === 'FINANCE' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() =>
+                  setActivePersona({ name: 'David Park', role: 'FINANCE' })
+                }
+              >
+                💼 Finance Manager (David Park)
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-xs ${
+                  effectiveRole === 'ADMIN' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() =>
+                  setActivePersona({ name: 'System Admin', role: 'ADMIN' })
+                }
+              >
+                ⚡ Executive Admin
+              </button>
             </div>
           </div>
         )}
@@ -115,33 +166,46 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
                   : 'var(--amber)',
             }}
           >
-            <strong>Quotation Status: {approval.status.replace('_', ' ')}</strong> — This quotation has been finalized or returned for revision. No further approvals can be executed at this time.
+            <strong>Quotation Status: {approval.status.replace('_', ' ')}</strong> — This quotation
+            has reached a terminal or revision state.
           </div>
         )}
 
-        {/* Waiting on Other Department */}
-        {!isFinalized && !isSalesRep && !canAct && (
-          <div
-            style={{
-              background: 'rgba(245, 158, 11, 0.08)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
-              borderRadius: '6px',
-              padding: '12px 14px',
-              fontSize: '12px',
-              color: 'var(--amber)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <span>⏳</span>
-            <div>
-              {isSalesManager && isFinanceStep
-                ? 'Manager sign-off completed. Currently awaiting Finance clearance.'
-                : isFinance && isManagerStep
-                ? 'Awaiting Sales Manager review first before Finance clearance is enabled.'
-                : 'Current approval stage is assigned to another review team.'}
-            </div>
+        {/* Current Workflow Guidance */}
+        {!isFinalized && (
+          <div className="mb-4">
+            {isManagerStep && (
+              <div
+                style={{
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: '6px',
+                  padding: '10px 14px',
+                  fontSize: '12px',
+                  color: 'var(--accent)',
+                }}
+              >
+                <strong>Stage 1: Sales Manager Review</strong> — {needsFinanceLater
+                  ? '⚠️ Higher risk threshold triggered (risk/discount/margin). Sales Manager approval will advance this deal to Finance Review.'
+                  : 'Standard risk level. Sales Manager approval will immediately finalize quotation for customer release.'}
+              </div>
+            )}
+
+            {isFinanceStep && (
+              <div
+                style={{
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '6px',
+                  padding: '10px 14px',
+                  fontSize: '12px',
+                  color: 'var(--amber)',
+                }}
+              >
+                <strong>Stage 2: Finance Manager Review</strong> — Sales Manager has approved.
+                Finance Manager sign-off is required to release this high-value/discounted quote.
+              </div>
+            )}
           </div>
         )}
 
@@ -149,9 +213,8 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
         {canAct && (
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Select an action to process quotation <strong>{approval.quoteNumber}</strong> ({approval.customerName}).
-              {isManagerStep && ' As Sales Manager, your approval will advance this deal to Finance review.'}
-              {isFinanceStep && ' As Finance, your approval will finalize and release this deal.'}
+              Acting as <strong>{effectiveName}</strong> ({effectiveRole?.replace('_', ' ')}): Select
+              an action to process quotation <strong>{approval.quoteNumber}</strong>.
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -163,7 +226,13 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
                 disabled={isLoading}
               >
                 <span>✓</span>
-                <span>Approve Deal</span>
+                <span>
+                  {isAdmin
+                    ? 'Executive Approve (Finalize)'
+                    : isManagerStep && needsFinanceLater
+                    ? 'Approve & Route to Finance'
+                    : 'Approve & Release to Customer'}
+                </span>
               </button>
 
               <button
@@ -174,7 +243,7 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
                 disabled={isLoading}
               >
                 <span>↩</span>
-                <span>Return for Revision</span>
+                <span>Return to Sales Rep</span>
               </button>
 
               <button
@@ -185,9 +254,16 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
                 disabled={isLoading}
               >
                 <span>✕</span>
-                <span>Reject Deal</span>
+                <span>Reject Quotation</span>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Rep Guidance if currently in Rep mode and not switched */}
+        {!isFinalized && isSalesRep && !canAct && (
+          <div className="text-xs text-muted-foreground mt-2">
+            Tip: Click <strong>"Sales Manager"</strong> or <strong>"Finance Manager"</strong> above to test approving this quotation.
           </div>
         )}
       </div>
@@ -198,12 +274,12 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
         onClose={() => setShowApproveModal(false)}
         onConfirm={(comment) => {
           setShowApproveModal(false);
-          onApprove(comment);
+          onApprove(comment, effectiveName, effectiveRole || 'SALES_MANAGER');
         }}
         quoteNumber={approval.quoteNumber}
         customerName={approval.customerName}
         dealValue={approval.dealValue}
-        isNextFinance={isManagerStep && (approval.riskLevel === 'HIGH' || approval.discountAppliedPct > 15)}
+        isNextFinance={needsFinanceLater}
         isLoading={isLoading}
       />
 
@@ -212,7 +288,7 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
         onClose={() => setShowRejectModal(false)}
         onConfirm={(reason) => {
           setShowRejectModal(false);
-          onReject(reason);
+          onReject(reason, effectiveName, effectiveRole || 'SALES_MANAGER');
         }}
         quoteNumber={approval.quoteNumber}
         customerName={approval.customerName}
@@ -224,7 +300,7 @@ export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
         onClose={() => setShowReturnModal(false)}
         onConfirm={(feedback) => {
           setShowReturnModal(false);
-          onReturn(feedback);
+          onReturn(feedback, effectiveName, effectiveRole || 'SALES_MANAGER');
         }}
         quoteNumber={approval.quoteNumber}
         customerName={approval.customerName}

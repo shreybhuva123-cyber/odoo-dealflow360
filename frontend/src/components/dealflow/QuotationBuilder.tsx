@@ -10,6 +10,8 @@ import { RecommendationPanel } from './RecommendationPanel';
 import { QuotationStatus } from './QuotationStatus';
 import { useRecommendations, useUpdateQuotation, useSubmitQuotation } from '@/hooks/useQuotations';
 import { useCreateFulfillment } from '@/hooks/useFulfillment';
+import { useApproval, useApproveApproval, useRejectApproval, useReturnApproval } from '@/hooks/useApprovals';
+import { negotiationsApi } from '@/services/api/negotiations.api';
 import { DealRecommendation } from '@/services/api/recommendations.api';
 import { showToast } from '@/stores/toast.store';
 import { ROUTES } from '@/constants/routes';
@@ -29,10 +31,29 @@ export function QuotationBuilder({
   const updateMutation = useUpdateQuotation();
   const submitMutation = useSubmitQuotation();
 
+  // Approval hooks
+  const { data: approvalData, refetch: refetchApproval } = useApproval(initialQuotation?.id || 'quote_1042');
+  const approveMutation = useApproveApproval();
+  const rejectMutation = useRejectApproval();
+  const returnMutation = useReturnApproval();
+
   // Quote metadata state
   const [quoteId, setQuoteId] = useState(initialQuotation?.id || 'quote_1042');
   const [quoteNumber, setQuoteNumber] = useState(initialQuotation?.quoteNumber || 'Q-1042');
   const [status, setStatus] = useState<Quotation['status']>(initialQuotation?.status || 'DRAFT');
+
+  // Customer negotiation counter-offer state
+  const portalToken = initialQuotation?.portalToken || initialQuotation?.id || quoteId;
+  const portalUrl = `/portal/quote/${portalToken}`;
+
+  const [customerProposedItems, setCustomerProposedItems] = useState<any[]>(
+    (initialQuotation as any)?.customerProposedItems || []
+  );
+  const [customerProposalMessage, setCustomerProposalMessage] = useState<string>(
+    (initialQuotation as any)?.customerProposedMessage ||
+      initialQuotation?.negotiationThread?.slice(-1)[0]?.content ||
+      ''
+  );
   const [customer, setCustomer] = useState<Customer>({
     id: initialQuotation?.customerId || 'cust_acme',
     companyName: initialQuotation?.customerName || 'Acme Corporation',
@@ -280,6 +301,24 @@ export function QuotationBuilder({
     showToast('Recommendation dismissed', 'blue');
   };
 
+  // Auto-load negotiation proposal when status is NEGOTIATION
+  useEffect(() => {
+    if (status === 'NEGOTIATION' && customerProposedItems.length === 0) {
+      negotiationsApi.getNegotiation(portalToken).then((neg) => {
+        if (neg && neg.items) {
+          setCustomerProposedItems(neg.items);
+          setCustomerProposalMessage(neg.message);
+        } else if (initialQuotation?.id === 'quote_1040' || quoteNumber === 'Q-1040') {
+          setCustomerProposalMessage('We would like to order 45 units of laptops & displays if you can give us 18% discount across hardware.');
+          setCustomerProposedItems([
+            { productName: 'ProLaptop X1', requestedQuantity: 45, requestedPrice: 984, discountPct: 18 },
+            { productName: 'UltraDisplay 4K', requestedQuantity: 45, requestedPrice: 393, discountPct: 18 },
+          ]);
+        }
+      });
+    }
+  }, [status, portalToken, customerProposedItems.length, initialQuotation?.id, quoteNumber]);
+
   // Handlers for Actions
   const handleSaveDraft = () => {
     const quotePayload: Partial<Quotation> = {
@@ -320,13 +359,140 @@ export function QuotationBuilder({
       {
         onSuccess: () => {
           setStatus('PENDING_APPROVAL');
-          showToast(`Quotation ${quoteNumber} submitted — routed for approval`, 'amber');
-          setTimeout(() => {
-            navigate(ROUTES.APP.APPROVALS);
-          }, 1200);
+          showToast(`Quotation ${quoteNumber} submitted — routed for executive review`, 'amber');
+          refetchApproval();
         },
       }
     );
+  };
+
+  const handleManagerApprove = () => {
+    approveMutation.mutate(
+      {
+        id: approvalData?.id || quoteId,
+        comment: 'Sales Manager approved proposal terms.',
+        approverName: 'Maria Chen',
+        role: 'SALES_MANAGER',
+      },
+      {
+        onSuccess: (updated) => {
+          if (updated.status === 'APPROVED') {
+            setStatus('APPROVED');
+            showToast(`Quotation ${quoteNumber} fully approved by Sales Manager!`, 'green');
+          } else {
+            showToast(`Quotation ${quoteNumber} approved by Sales Manager — routed to Finance Review!`, 'green');
+            refetchApproval();
+          }
+        },
+      }
+    );
+  };
+
+  const handleFinanceApprove = () => {
+    approveMutation.mutate(
+      {
+        id: approvalData?.id || quoteId,
+        comment: 'Finance Manager commercial clearance approved.',
+        approverName: 'David Park',
+        role: 'FINANCE',
+      },
+      {
+        onSuccess: () => {
+          setStatus('APPROVED');
+          showToast(`Quotation ${quoteNumber} approved by Finance Manager — deal released!`, 'green');
+          refetchApproval();
+        },
+      }
+    );
+  };
+
+  const handleAdminApprove = () => {
+    approveMutation.mutate(
+      {
+        id: approvalData?.id || quoteId,
+        comment: 'Executive administrator override approval.',
+        approverName: 'System Admin',
+        role: 'ADMIN',
+      },
+      {
+        onSuccess: () => {
+          setStatus('APPROVED');
+          showToast(`Quotation ${quoteNumber} fully approved by Administrator!`, 'green');
+          refetchApproval();
+        },
+      }
+    );
+  };
+
+  const handleReturnClick = () => {
+    returnMutation.mutate(
+      {
+        id: approvalData?.id || quoteId,
+        feedback: 'Margin below target. Please revise line discounts and resubmit.',
+        approverName: 'Maria Chen',
+        role: 'SALES_MANAGER',
+      },
+      {
+        onSuccess: () => {
+          setStatus('DRAFT');
+          showToast(`Quotation returned to Sales Rep for revision`, 'amber');
+          refetchApproval();
+        },
+      }
+    );
+  };
+
+  const handleRejectClick = () => {
+    rejectMutation.mutate(
+      {
+        id: approvalData?.id || quoteId,
+        reason: 'Commercial terms breached policy guidelines.',
+        approverName: 'Maria Chen',
+        role: 'SALES_MANAGER',
+      },
+      {
+        onSuccess: () => {
+          setStatus('REJECTED');
+          showToast(`Quotation rejected by management`, 'red');
+          refetchApproval();
+        },
+      }
+    );
+  };
+
+  const handleApplyCustomerTerms = () => {
+    const proposed =
+      customerProposedItems.length > 0
+        ? customerProposedItems
+        : [
+            { productName: 'ProLaptop X1', requestedQuantity: 45, requestedPrice: 984, discountPct: 18 },
+            { productName: 'UltraDisplay 4K', requestedQuantity: 45, requestedPrice: 393, discountPct: 18 },
+          ];
+
+    setLines((prev) =>
+      prev.map((line) => {
+        const match = proposed.find(
+          (p: any) =>
+            p.productName?.toLowerCase().includes(line.productName.toLowerCase()) ||
+            line.productName.toLowerCase().includes(p.productName?.toLowerCase())
+        );
+        if (match) {
+          const newQty = match.requestedQuantity || line.quantity;
+          const newDisc = match.discountPct !== undefined ? match.discountPct : line.discountPct;
+          const unitPrice = match.requestedPrice || line.unitPrice;
+          const lineSub = newQty * unitPrice;
+          const lineDisc = lineSub * (newDisc / 100);
+          return {
+            ...line,
+            quantity: newQty,
+            discountPct: newDisc,
+            lineTotal: Math.round((lineSub - lineDisc) * 100) / 100,
+          };
+        }
+        return line;
+      })
+    );
+    showToast("Customer counter-offer terms applied to lines! Review summary & resubmit.", 'green');
   };
 
   const createFulfillmentMutation = useCreateFulfillment();
@@ -359,6 +525,24 @@ export function QuotationBuilder({
   const isApprovedOrConfirmed =
     status === 'APPROVED' || status === 'CONFIRMED' || status === 'ACCEPTED';
 
+  const isHighRisk =
+    riskScore >= 50 ||
+    summary.overallMarginPct < 20 ||
+    summary.discountTotal / (summary.subtotal || 1) > 0.15;
+
+  const currentStageName =
+    approvalData?.approvalStage ||
+    (status === 'PENDING_APPROVAL'
+      ? isHighRisk
+        ? 'Sales Manager Review'
+        : 'Sales Manager Review'
+      : status);
+
+  const isFinanceStep =
+    currentStageName === 'Finance Review' ||
+    currentStageName === 'Finance' ||
+    approvalData?.currentStepIndex === 2;
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header Bar */}
@@ -384,7 +568,31 @@ export function QuotationBuilder({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Customer Portal Link (when Approved, Confirmed, or in Negotiation) */}
+          {(isApprovedOrConfirmed || status === 'NEGOTIATION') && (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm text-xs font-semibold flex items-center gap-1.5"
+                onClick={() => window.open(portalUrl, '_blank')}
+              >
+                <span>🌐</span>
+                <span>Open Customer Portal</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.origin + portalUrl);
+                  showToast('Customer portal link copied to clipboard!', 'green');
+                }}
+              >
+                <span>📋 Copy Link</span>
+              </button>
+            </>
+          )}
+
           {isApprovedOrConfirmed && (
             <button
               type="button"
@@ -395,15 +603,17 @@ export function QuotationBuilder({
               {createFulfillmentMutation.isPending ? 'Routing...' : 'Proceed to Fulfillment 📦'}
             </button>
           )}
+
           {status === 'PENDING_APPROVAL' && (
             <button
               type="button"
               className="btn btn-warning btn-sm text-xs"
-              onClick={() => navigate(ROUTES.APP.APPROVAL_DETAIL(quoteId))}
+              onClick={() => navigate(ROUTES.APP.APPROVAL_DETAIL(approvalData?.id || quoteId))}
             >
               View In Approval Center ↗
             </button>
           )}
+
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -412,16 +622,157 @@ export function QuotationBuilder({
           >
             Save Draft
           </button>
+
           <button
             type="button"
             className="btn btn-primary btn-sm"
             onClick={handleSubmitForApproval}
             disabled={updateMutation.isPending}
           >
-            Submit for Approval
+            {status === 'NEGOTIATION' ? 'Resubmit Revised Quote' : 'Submit for Approval'}
           </button>
         </div>
       </div>
+
+      {/* Executive Multi-Tier Approval Action Banner */}
+      {status === 'PENDING_APPROVAL' && (
+        <div
+          className="p-4 rounded-xl border flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+          style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            borderColor: 'rgba(245, 158, 11, 0.3)',
+          }}
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base">⏳</span>
+              <strong className="text-sm font-bold text-amber-500">
+                Awaiting Executive Sign-Off: {isFinanceStep ? 'Finance Manager Review' : 'Sales Manager Review'}
+              </strong>
+              <span className={`badge ${isHighRisk ? 'badge-red' : 'badge-green'} text-xs`}>
+                {isHighRisk ? 'High Commercial Risk (2-Tier Approval)' : 'Standard Risk (1-Tier Approval)'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isFinanceStep
+                ? 'Sales Manager approval completed. High risk / discount ceiling breach requires Finance clearance to release.'
+                : isHighRisk
+                ? 'High risk trigger: discount > 15% or margin < 20%. Sales Manager approval will advance deal to Finance.'
+                : 'Standard deal metrics. Sales Manager approval will immediately finalize and release quotation.'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {!isFinanceStep ? (
+              <button
+                type="button"
+                className="btn btn-success btn-sm text-xs font-semibold"
+                onClick={handleManagerApprove}
+                disabled={approveMutation.isPending}
+              >
+                <span>✓</span>
+                <span>{isHighRisk ? 'Approve as Sales Manager (Forward to Finance)' : 'Approve as Sales Manager (Release)'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-success btn-sm text-xs font-semibold"
+                onClick={handleFinanceApprove}
+                disabled={approveMutation.isPending}
+              >
+                <span>✓</span>
+                <span>Approve as Finance Manager (Release)</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="btn btn-primary btn-sm text-xs"
+              onClick={handleAdminApprove}
+              disabled={approveMutation.isPending}
+              title="Fast-track administrative sign-off"
+            >
+              <span>⚡</span>
+              <span>Admin Override</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-warning btn-sm text-xs"
+              onClick={handleReturnClick}
+              disabled={returnMutation.isPending}
+            >
+              <span>↩</span>
+              <span>Return to Rep</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-danger btn-sm text-xs"
+              onClick={handleRejectClick}
+              disabled={rejectMutation.isPending}
+            >
+              <span>✕</span>
+              <span>Reject</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Counter-Offer Negotiation Alert Banner (Loopback to Sales Rep) */}
+      {status === 'NEGOTIATION' && (
+        <div
+          className="p-4 rounded-xl border flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+          style={{
+            background: 'rgba(59, 130, 246, 0.08)',
+            borderColor: 'rgba(59, 130, 246, 0.3)',
+          }}
+        >
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="text-base">💬</span>
+              <strong className="text-sm font-bold text-accent">
+                Customer Counter-Offer Received
+              </strong>
+              <span className="badge badge-blue text-xs">Awaiting Rep Revision</span>
+            </div>
+            <p className="text-xs text-foreground">
+              <strong>Customer Note:</strong> "{customerProposalMessage || 'Customer proposed revised quantities and rate terms via the Customer Portal.'}"
+            </p>
+            {customerProposedItems && customerProposedItems.length > 0 && (
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-2 pt-0.5">
+                <span className="font-semibold text-foreground">Proposed:</span>
+                {customerProposedItems.map((it: any, i: number) => (
+                  <span key={i} className="inline-block bg-accent/10 px-2 py-0.5 rounded text-accent font-mono text-xs font-semibold">
+                    {it.productName}: Qty {it.requestedQuantity} @ ${it.requestedPrice?.toLocaleString() || it.currentPrice}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              className="btn btn-success btn-sm text-xs font-semibold"
+              onClick={handleApplyCustomerTerms}
+            >
+              <span>✓</span>
+              <span>Apply Customer's Terms to Lines</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary btn-sm text-xs font-semibold"
+              onClick={handleSubmitForApproval}
+              disabled={updateMutation.isPending}
+            >
+              <span>🚀</span>
+              <span>Submit Revised Quote for Approval</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Builder Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

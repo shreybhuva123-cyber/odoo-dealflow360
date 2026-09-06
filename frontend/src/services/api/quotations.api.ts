@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { Quotation, QuotationSummary, ApiResponse } from '@/types';
+import { createOrUpdateFromQuotation } from './approvals.api';
 
 const STORAGE_KEY = 'dealflow_quotations_v2';
 
@@ -491,6 +492,13 @@ export const quotationsApi = {
       };
       const updated = [newQuote, ...all];
       saveStoredQuotes(updated);
+      if (newQuote.status === 'PENDING_APPROVAL' || newQuote.approvalRequired) {
+        try {
+          createOrUpdateFromQuotation(newQuote);
+        } catch (e) {
+          console.error('Failed to register approval for new quotation', e);
+        }
+      }
       return newQuote;
     }
   },
@@ -510,9 +518,24 @@ export const quotationsApi = {
         };
         all[idx] = updated;
         saveStoredQuotes(all);
+        if (updated.status === 'PENDING_APPROVAL') {
+          try {
+            createOrUpdateFromQuotation(updated);
+          } catch (e) {
+            console.error('Failed to register approval for updated quotation', e);
+          }
+        }
         return updated;
       }
-      return { ...DEFAULT_MOCK_QUOTATIONS[0], ...payload };
+      const fallback = { ...DEFAULT_MOCK_QUOTATIONS[0], ...payload };
+      if (fallback.status === 'PENDING_APPROVAL') {
+        try {
+          createOrUpdateFromQuotation(fallback);
+        } catch (e) {
+          console.error('Failed to register approval for fallback quotation', e);
+        }
+      }
+      return fallback;
     }
   },
 
@@ -528,10 +551,16 @@ export const quotationsApi = {
   },
 
   async submit(id: string): Promise<Quotation> {
-    return quotationsApi.update(id, {
+    const updated = await quotationsApi.update(id, {
       status: 'PENDING_APPROVAL',
       approvalRequired: true,
     });
+    try {
+      createOrUpdateFromQuotation(updated);
+    } catch (e) {
+      console.error('Failed to register approval on submit', e);
+    }
+    return updated;
   },
 
   async recalculate(quotation: Partial<Quotation>): Promise<QuotationSummary> {

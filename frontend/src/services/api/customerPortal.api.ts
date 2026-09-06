@@ -265,11 +265,93 @@ function saveStoredActivity(activity: Record<string, CustomerTimelineEvent[]>) {
   }
 }
 
+const QUOTATIONS_STORAGE_KEY = 'dealflow_quotations_v2';
+const PIPELINE_STORAGE_KEY = 'dealflow_pipeline_v2';
+
+function syncLinkedDealStage(dealId: string | undefined, stage: string) {
+  if (!dealId) return;
+  try {
+    const raw = localStorage.getItem(PIPELINE_STORAGE_KEY);
+    if (!raw) return;
+    const deals = JSON.parse(raw);
+    const updated = deals.map((d: any) => (d.id === dealId ? { ...d, stage, updatedAt: new Date().toISOString() } : d));
+    localStorage.setItem(PIPELINE_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to sync linked deal stage', e);
+  }
+}
+
 export const customerPortalApi = {
   async getCustomerQuote(token: string): Promise<CustomerQuote | null> {
     await new Promise((r) => setTimeout(r, 120));
     const quotes = loadStoredQuotes();
-    const quote = quotes[token];
+    let quote = quotes[token];
+
+    // Fallback: lookup in dealflow_quotations_v2 by token, id, or quoteNumber
+    if (!quote) {
+      try {
+        const rawQuotes = localStorage.getItem(QUOTATIONS_STORAGE_KEY);
+        if (rawQuotes) {
+          const list = JSON.parse(rawQuotes);
+          const matched = list.find(
+            (q: any) =>
+              q.portalToken === token ||
+              q.id === token ||
+              q.quoteNumber === token ||
+              q.quoteNumber?.replace('-', '') === token
+          );
+
+          if (matched) {
+            const mappedStatus: CustomerQuoteStatus =
+              matched.status === 'CONFIRMED' || matched.status === 'ACCEPTED'
+                ? 'accepted'
+                : matched.status === 'REJECTED'
+                ? 'rejected'
+                : matched.status === 'NEGOTIATION' || matched.status === 'NEGOTIATING'
+                ? 'changes_requested'
+                : 'awaiting_response';
+
+            quote = {
+              id: matched.id,
+              quoteNumber: matched.quoteNumber,
+              customerName: matched.customerName,
+              customerEmail: 'procurement@' + (matched.customerName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'),
+              issueDate: new Date().toISOString().split('T')[0],
+              validUntil: matched.expiryDate ? matched.expiryDate.split('T')[0] : '2026-10-31',
+              status: mappedStatus,
+              currency: matched.summary?.currency || 'USD',
+              items: (matched.lines || []).map((l: any, idx: number) => ({
+                id: `cqi_${matched.id}_${idx}`,
+                productId: l.productId,
+                productName: l.productName,
+                description: `${l.productName} - SKU: ${l.sku}`,
+                quantity: l.quantity,
+                unitPrice: l.unitPrice,
+                discountAmount: Math.round(l.unitPrice * (l.discountPct / 100) * l.quantity),
+                total: l.lineTotal,
+                category: l.category || 'General',
+              })),
+              subtotal: matched.summary?.subtotal || 0,
+              discount: matched.summary?.discountTotal || 0,
+              tax: matched.summary?.taxTotal || 0,
+              shipping: 0,
+              total: matched.summary?.grandTotal || 0,
+              version: 1,
+              salesRepName: matched.assignedRepName || 'Alex Morgan',
+              salesRepEmail: 'a.morgan@dealflow360.com',
+              notes: 'Official commercial proposal released by sales management.',
+              termsAndConditions: 'Standard commercial contract terms apply. Net 30 payment terms.',
+            };
+
+            quotes[token] = quote;
+            saveStoredQuotes(quotes);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to construct portal quote from quotation store', err);
+      }
+    }
+
     if (!quote) return null;
 
     // Check expiry
@@ -339,6 +421,42 @@ export const customerPortalApi = {
     quotes[token] = quote;
     saveStoredQuotes(quotes);
 
+    // Sync back to dealflow_quotations_v2: mark as CONFIRMED
+    try {
+      const rawQuotes = localStorage.getItem(QUOTATIONS_STORAGE_KEY);
+      if (rawQuotes) {
+        const list = JSON.parse(rawQuotes);
+        let linkedDealId: string | undefined;
+        const updated = list.map((q: any) => {
+          if (q.portalToken === token || q.id === quote.id || q.quoteNumber === quote.quoteNumber) {
+            linkedDealId = q.dealId;
+            return {
+              ...q,
+              status: 'CONFIRMED',
+              updatedAt: new Date().toISOString(),
+              negotiationThread: [
+                ...(q.negotiationThread || []),
+                {
+                  id: `neg_msg_${Date.now()}`,
+                  sender: 'CUSTOMER',
+                  senderName: payload.signatoryName,
+                  content: `Proposal accepted & digitally confirmed by ${payload.signatoryName} (${payload.signatoryEmail}). ${payload.notes ? `Note: "${payload.notes}"` : ''}`,
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            };
+          }
+          return q;
+        });
+        localStorage.setItem(QUOTATIONS_STORAGE_KEY, JSON.stringify(updated));
+        if (linkedDealId) {
+          syncLinkedDealStage(linkedDealId, 'won');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync accepted quote to quotation store', err);
+    }
+
     // Record activity
     const activity = loadStoredActivity();
     const list = activity[token] || [];
@@ -367,6 +485,27 @@ export const customerPortalApi = {
     quote.status = 'rejected';
     quotes[token] = quote;
     saveStoredQuotes(quotes);
+
+    // Sync back to dealflow_quotations_v2: mark as REJECTED
+    try {
+      const rawQuotes = localStorage.getItem(QUOTATIONS_STORAGE_KEY);
+      if (rawQuotes) {
+        const list = JSON.parse(rawQuotes);
+        const updated = list.map((q: any) => {
+          if (q.portalToken === token || q.id === quote.id || q.quoteNumber === quote.quoteNumber) {
+            return {
+              ...q,
+              status: 'REJECTED',
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return q;
+        });
+        localStorage.setItem(QUOTATIONS_STORAGE_KEY, JSON.stringify(updated));
+      }
+    } catch (err) {
+      console.error('Failed to sync rejected quote to quotation store', err);
+    }
 
     const activity = loadStoredActivity();
     const list = activity[token] || [];
@@ -399,6 +538,44 @@ export const customerPortalApi = {
     quote.status = 'changes_requested';
     quotes[token] = quote;
     saveStoredQuotes(quotes);
+
+    // Sync back to dealflow_quotations_v2: move quote to NEGOTIATION and attach proposed items
+    try {
+      const rawQuotes = localStorage.getItem(QUOTATIONS_STORAGE_KEY);
+      if (rawQuotes) {
+        const list = JSON.parse(rawQuotes);
+        let linkedDealId: string | undefined;
+        const updated = list.map((q: any) => {
+          if (q.portalToken === token || q.id === quote.id || q.quoteNumber === quote.quoteNumber) {
+            linkedDealId = q.dealId;
+            return {
+              ...q,
+              status: 'NEGOTIATION',
+              customerProposedItems: payload.items,
+              customerProposedMessage: payload.message,
+              updatedAt: new Date().toISOString(),
+              negotiationThread: [
+                ...(q.negotiationThread || []),
+                {
+                  id: `neg_msg_${Date.now()}`,
+                  sender: 'CUSTOMER',
+                  senderName: payload.customerName || 'Customer Representative',
+                  content: payload.message,
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            };
+          }
+          return q;
+        });
+        localStorage.setItem(QUOTATIONS_STORAGE_KEY, JSON.stringify(updated));
+        if (linkedDealId) {
+          syncLinkedDealStage(linkedDealId, 'negotiation');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync negotiation back to quotation store', err);
+    }
 
     // Append to timeline
     const activity = loadStoredActivity();

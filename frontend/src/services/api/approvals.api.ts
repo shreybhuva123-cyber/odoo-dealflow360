@@ -1052,26 +1052,288 @@ function saveApprovals(approvals: ApprovalRequest[]): void {
   }
 }
 
+const PORTAL_QUOTES_KEY = 'dealflow_portal_quotes_v2';
+
+export function createApprovalFromQuotation(quote: Quotation): ApprovalRequest {
+  const subtotal = quote.summary?.subtotal || 0;
+  const discountTotal = quote.summary?.discountTotal || 0;
+  const discountAppliedPct = subtotal > 0 ? Math.round((discountTotal / subtotal) * 1000) / 10 : 0;
+  const marginPct = quote.summary?.overallMarginPct ?? 25;
+  const dealValue = quote.summary?.grandTotal || subtotal;
+  const riskScore = quote.riskScore ?? (discountAppliedPct > 15 ? 65 : 20);
+
+  const isHighRisk =
+    quote.riskCategory === 'HIGH' ||
+    riskScore >= 50 ||
+    discountAppliedPct > 15 ||
+    marginPct < 20 ||
+    (quote.lines || []).some((l) => l.discountPct > 15);
+
+  const riskLevel: 'HIGH' | 'MEDIUM' | 'LOW' = isHighRisk
+    ? 'HIGH'
+    : riskScore > 30
+    ? 'MEDIUM'
+    : 'LOW';
+
+  const triggerReasons: string[] = [];
+  if (discountAppliedPct > 15) {
+    triggerReasons.push(`Average discount (${discountAppliedPct}%) exceeds 15% tier ceiling.`);
+  }
+  if (marginPct < 20) {
+    triggerReasons.push(`Gross margin (${marginPct}%) is below company threshold (20%).`);
+  }
+  if (riskScore >= 50) {
+    triggerReasons.push(`Calculated deal risk score (${riskScore}/100) indicates elevated exposure.`);
+  }
+  if (triggerReasons.length === 0) {
+    triggerReasons.push('Commercial policy review required prior to customer release.');
+  }
+
+  const steps: ApprovalRequest['steps'] = [
+    {
+      stepNumber: 1,
+      stepName: 'Rep Submission',
+      roleRequired: 'SALES_REP',
+      approverName: quote.assignedRepName || 'Alex Morgan',
+      status: 'APPROVED',
+      comment: 'Quotation submitted for executive commercial review.',
+      decidedAt: quote.createdAt || new Date().toISOString(),
+    },
+    {
+      stepNumber: 2,
+      stepName: 'Sales Manager Review',
+      roleRequired: 'SALES_MANAGER',
+      approverName: 'Maria Chen',
+      status: 'PENDING',
+    },
+  ];
+
+  if (isHighRisk) {
+    steps.push({
+      stepNumber: 3,
+      stepName: 'Finance Review',
+      roleRequired: 'FINANCE',
+      approverName: 'David Park',
+      status: 'PENDING',
+    });
+    steps.push({
+      stepNumber: 4,
+      stepName: 'Final Decision',
+      roleRequired: 'SYSTEM',
+      status: 'PENDING',
+    });
+  } else {
+    steps.push({
+      stepNumber: 3,
+      stepName: 'Final Decision',
+      roleRequired: 'SYSTEM',
+      status: 'PENDING',
+    });
+  }
+
+  const discountAnalysis: ApprovalRequest['discountAnalysis'] = (quote.lines || []).map((l, i) => {
+    const isBreached = l.discountPct > 15;
+    return {
+      id: `da_${quote.id}_${i}`,
+      productId: l.productId,
+      productName: `${l.productName} (×${l.quantity})`,
+      category: l.category || 'Hardware',
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      appliedDiscountPct: l.discountPct,
+      categoryCeilingPct: 15.0,
+      customerTierCeilingPct: quote.customerTier === 'SILVER' ? 10.0 : quote.customerTier === 'BRONZE' ? 5.0 : 15.0,
+      status: isBreached ? 'BREACHED' : 'PASS',
+      variancePts: Math.max(0, l.discountPct - 15),
+    };
+  });
+
+  const riskFactors: ApprovalRequest['riskFactors'] = [];
+  if (discountAppliedPct > 15) {
+    riskFactors.push({
+      id: `rf_${quote.id}_disc`,
+      severity: 'HIGH',
+      title: 'Discount Limit Exceeded',
+      detail: `Aggregate discount of ${discountAppliedPct}% exceeds tier guideline limit of 15%.`,
+      impact: `Erosion of $${discountTotal.toLocaleString()} in gross transaction value.`,
+    });
+  }
+  if (marginPct < 20) {
+    riskFactors.push({
+      id: `rf_${quote.id}_margin`,
+      severity: 'HIGH',
+      title: 'Gross Margin Compression',
+      detail: `Overall margin of ${marginPct}% is below the mandatory corporate threshold (20%).`,
+      impact: 'Negatively impacts divisional target profitability.',
+    });
+  }
+  if (riskFactors.length === 0) {
+    riskFactors.push({
+      id: `rf_${quote.id}_std`,
+      severity: 'LOW',
+      title: 'Standard Commercial Terms',
+      detail: 'Deal metrics are within standard operating thresholds.',
+      impact: 'Eligible for streamlined sales management approval.',
+    });
+  }
+
+  const financeDetails = {
+    grossRevenue: subtotal,
+    costOfGoods: Math.round(subtotal * (1 - marginPct / 100)),
+    netMarginDollars: Math.round(dealValue * (marginPct / 100)),
+    netMarginPct: marginPct,
+    taxTotal: quote.summary?.taxTotal || 0,
+    paymentTermsRequested: 'Net 30',
+    standardPaymentTerms: 'Net 30',
+    creditRating: quote.customerTier === 'GOLD' ? 'AAA' : 'AA',
+    creditLimit: 150000,
+    outstandingBalance: 0,
+    currency: quote.summary?.currency || 'USD',
+  };
+
+  const now = new Date();
+  const timestampStr =
+    now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' · ' +
+    now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  return {
+    id: quote.approvalRequestId || `appr_req_${quote.id.replace('quote_', '')}`,
+    quotationId: quote.id,
+    quoteNumber: quote.quoteNumber,
+    customerName: quote.customerName,
+    customerTier: quote.customerTier || 'GOLD',
+    requestedByRepName: quote.assignedRepName || 'Alex Morgan',
+    requestedByRepId: quote.assignedRepId || 'usr_rep_1',
+    triggerReason: triggerReasons.join(' '),
+    discountAppliedPct,
+    marginPct,
+    dealValue,
+    riskScore,
+    riskLevel,
+    approvalStage: 'Sales Manager',
+    timeInQueue: 'Just now',
+    status: 'PENDING',
+    currentStepIndex: 1,
+    createdAt: quote.createdAt || now.toISOString(),
+    updatedAt: now.toISOString(),
+    steps,
+    discountAnalysis,
+    riskFactors,
+    auditTrail: [
+      {
+        id: `aud_${Date.now()}`,
+        icon: '📝',
+        title: 'Quotation Submitted for Approval',
+        actor: quote.assignedRepName || 'Alex Morgan',
+        role: 'Sales Representative',
+        action: 'SUBMITTED',
+        comment: `Submitted quote ${quote.quoteNumber} (${triggerReasons[0]})`,
+        timestamp: timestampStr,
+      },
+    ],
+    financeDetails,
+  };
+}
+
+export function createOrUpdateFromQuotation(quote: Quotation): ApprovalRequest {
+  const list = loadApprovals();
+  const idx = list.findIndex(
+    (a) =>
+      a.id === quote.approvalRequestId ||
+      a.quotationId === quote.id ||
+      a.quoteNumber === quote.quoteNumber
+  );
+
+  const fresh = createApprovalFromQuotation(quote);
+  if (idx >= 0) {
+    const existing = list[idx];
+    const merged: ApprovalRequest = {
+      ...fresh,
+      id: existing.id,
+      auditTrail: [...fresh.auditTrail, ...existing.auditTrail.slice(0, 10)],
+    };
+    list[idx] = merged;
+    saveApprovals(list);
+    return merged;
+  } else {
+    list.unshift(fresh);
+    saveApprovals(list);
+    return fresh;
+  }
+}
+
 function syncQuotationStatus(
   quoteNumber: string,
   quotationId: string,
-  status: 'APPROVED' | 'REJECTED' | 'DRAFT' | 'PENDING_APPROVAL'
+  status: 'APPROVED' | 'REJECTED' | 'DRAFT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'NEGOTIATION'
 ) {
   try {
     const rawQuotes = localStorage.getItem(QUOTATIONS_STORAGE_KEY);
     if (!rawQuotes) return;
     const quotes: Quotation[] = JSON.parse(rawQuotes);
+    let matchedQuote: Quotation | undefined;
     const updated = quotes.map((q) => {
       if (q.quoteNumber === quoteNumber || q.id === quotationId) {
-        return {
+        matchedQuote = {
           ...q,
           status,
           updatedAt: new Date().toISOString(),
         };
+        return matchedQuote;
       }
       return q;
     });
     localStorage.setItem(QUOTATIONS_STORAGE_KEY, JSON.stringify(updated));
+
+    // When status is APPROVED, also ensure sync into Customer Portal storage
+    if (status === 'APPROVED' && matchedQuote) {
+      try {
+        const rawPortal = localStorage.getItem(PORTAL_QUOTES_KEY);
+        const portalQuotes = rawPortal ? JSON.parse(rawPortal) : {};
+        const portalToken = matchedQuote.portalToken || matchedQuote.id;
+
+        if (!portalQuotes[portalToken]) {
+          portalQuotes[portalToken] = {
+            id: matchedQuote.id,
+            quoteNumber: matchedQuote.quoteNumber,
+            customerName: matchedQuote.customerName,
+            customerEmail: 'procurement@' + (matchedQuote.customerName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'),
+            issueDate: new Date().toISOString().split('T')[0],
+            validUntil: matchedQuote.expiryDate ? matchedQuote.expiryDate.split('T')[0] : '2026-10-31',
+            status: 'awaiting_response',
+            currency: matchedQuote.summary?.currency || 'USD',
+            items: (matchedQuote.lines || []).map((l, idx) => ({
+              id: `cqi_${matchedQuote!.id}_${idx}`,
+              productId: l.productId,
+              productName: l.productName,
+              description: `${l.productName} - SKU: ${l.sku}`,
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+              discountAmount: Math.round(l.unitPrice * (l.discountPct / 100) * l.quantity),
+              total: l.lineTotal,
+              category: l.category || 'General',
+            })),
+            subtotal: matchedQuote.summary?.subtotal || 0,
+            discount: matchedQuote.summary?.discountTotal || 0,
+            tax: matchedQuote.summary?.taxTotal || 0,
+            shipping: 0,
+            total: matchedQuote.summary?.grandTotal || 0,
+            version: 1,
+            salesRepName: matchedQuote.assignedRepName || 'Alex Morgan',
+            salesRepEmail: 'a.morgan@dealflow360.com',
+            notes: 'Approved commercial proposal ready for digital acceptance.',
+            termsAndConditions: 'Standard commercial terms apply. Net 30 payment terms.',
+          };
+          localStorage.setItem(PORTAL_QUOTES_KEY, JSON.stringify(portalQuotes));
+        } else {
+          portalQuotes[portalToken].status = 'awaiting_response';
+          localStorage.setItem(PORTAL_QUOTES_KEY, JSON.stringify(portalQuotes));
+        }
+      } catch (portalErr) {
+        console.error('Failed to sync portal quote on approval', portalErr);
+      }
+    }
   } catch (err) {
     console.error('Failed to sync quotation status', err);
   }
@@ -1091,7 +1353,28 @@ export const approvalsApi = {
         a.quotationId.toLowerCase() === query ||
         a.quoteNumber.toLowerCase() === query
     );
-    return found || null;
+    if (found) return found;
+
+    // Resilient fallback: auto-construct approval from stored quotation
+    try {
+      const rawQuotes = localStorage.getItem(QUOTATIONS_STORAGE_KEY);
+      if (rawQuotes) {
+        const quotes: Quotation[] = JSON.parse(rawQuotes);
+        const matchedQuote = quotes.find(
+          (q) =>
+            q.id.toLowerCase() === query ||
+            q.quoteNumber.toLowerCase() === query ||
+            (q.approvalRequestId && q.approvalRequestId.toLowerCase() === query)
+        );
+        if (matchedQuote) {
+          return createOrUpdateFromQuotation(matchedQuote);
+        }
+      }
+    } catch (e) {
+      console.error('Error auto-recovering approval from quotation', e);
+    }
+
+    return null;
   },
 
   async getKpis(): Promise<ApprovalKpis> {
@@ -1115,76 +1398,135 @@ export const approvalsApi = {
     role: string = 'SALES_MANAGER'
   ): Promise<ApprovalRequest> {
     const list = loadApprovals();
-    const idx = list.findIndex((a) => a.id === id || a.quotationId === id || a.quoteNumber === id);
+    let idx = list.findIndex((a) => a.id === id || a.quotationId === id || a.quoteNumber === id);
     if (idx === -1) {
-      throw new Error(`Approval request ${id} not found.`);
+      const recovered = await approvalsApi.getById(id);
+      if (!recovered) {
+        throw new Error(`Approval request ${id} not found.`);
+      }
+      const refreshedList = loadApprovals();
+      idx = refreshedList.findIndex((a) => a.id === id || a.quotationId === id || a.quoteNumber === id);
     }
 
     const current = list[idx];
     const now = new Date();
-    const timestampStr = now.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }) + ' · ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const timestampStr =
+      now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }) +
+      ' · ' +
+      now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-    // Step logic
     const updatedSteps = [...current.steps];
     let newStatus = current.status;
     let newStage = current.approvalStage;
     let nextStepIndex = current.currentStepIndex;
 
-    // If currently at Step 1 (Sales Manager)
-    if (current.currentStepIndex <= 1) {
-      updatedSteps[1] = {
-        ...updatedSteps[1],
-        status: 'APPROVED',
-        approverName,
-        comment: comment || 'Approved by Sales Manager.',
-        decidedAt: now.toISOString(),
-      };
+    const normalizedRole = role.toUpperCase();
+    const isAdmin = normalizedRole === 'ADMIN';
+    const isFinance = normalizedRole === 'FINANCE' || normalizedRole.includes('FINANCE');
 
-      // Check if Finance review is required (high risk or discount > 15% or margin < 20%)
-      const needsFinance =
-        current.riskLevel === 'HIGH' ||
-        current.discountAppliedPct > 15 ||
-        current.marginPct < 20 ||
-        updatedSteps.length > 2;
+    // Risk rule: High risk, low margin (<20%), high discount (>15%), or score >= 50 requires Finance Manager review
+    const needsFinance =
+      current.riskLevel === 'HIGH' ||
+      current.riskScore >= 50 ||
+      current.discountAppliedPct > 15 ||
+      current.marginPct < 20;
 
-      if (needsFinance && updatedSteps[2]) {
-        nextStepIndex = 2;
-        newStage = 'Finance';
-        newStatus = 'PENDING';
-        updatedSteps[2] = {
-          ...updatedSteps[2],
-          status: 'PENDING',
-        };
-      } else {
-        // Fully approved
-        nextStepIndex = updatedSteps.length - 1;
-        newStage = 'Fully Approved';
-        newStatus = 'APPROVED';
-        if (updatedSteps[updatedSteps.length - 1]) {
-          updatedSteps[updatedSteps.length - 1].status = 'APPROVED';
-          updatedSteps[updatedSteps.length - 1].decidedAt = now.toISOString();
+    if (isAdmin) {
+      // Executive override / Admin approval
+      updatedSteps.forEach((s, sIdx) => {
+        if (s.status === 'PENDING') {
+          updatedSteps[sIdx] = {
+            ...s,
+            status: 'APPROVED',
+            approverName: approverName || 'Executive Admin',
+            comment: comment || 'Administrative sign-off granted.',
+            decidedAt: now.toISOString(),
+          };
         }
-        syncQuotationStatus(current.quoteNumber, current.quotationId, 'APPROVED');
-      }
-    } else if (current.currentStepIndex === 2) {
-      // Finance step approved
-      updatedSteps[2] = {
-        ...updatedSteps[2],
-        status: 'APPROVED',
-        approverName: approverName || 'David Park',
-        comment: comment || 'Approved by Finance.',
-        decidedAt: now.toISOString(),
-      };
+      });
       nextStepIndex = updatedSteps.length - 1;
       newStage = 'Fully Approved';
       newStatus = 'APPROVED';
-      if (updatedSteps[updatedSteps.length - 1]) {
-        updatedSteps[updatedSteps.length - 1].status = 'APPROVED';
-        updatedSteps[updatedSteps.length - 1].decidedAt = now.toISOString();
+      syncQuotationStatus(current.quoteNumber, current.quotationId, 'APPROVED');
+    } else if (current.currentStepIndex <= 1 && !isFinance) {
+      // Step 1: Sales Manager Review
+      const mgrStepIdx = updatedSteps.findIndex((s) => s.roleRequired === 'SALES_MANAGER');
+      const targetIdx = mgrStepIdx >= 0 ? mgrStepIdx : 1;
+      if (updatedSteps[targetIdx]) {
+        updatedSteps[targetIdx] = {
+          ...updatedSteps[targetIdx],
+          status: 'APPROVED',
+          approverName: approverName || 'Maria Chen',
+          comment: comment || 'Approved by Sales Manager.',
+          decidedAt: now.toISOString(),
+        };
+      }
+
+      if (needsFinance) {
+        // High risk: Advance to Finance Review
+        let financeStepIdx = updatedSteps.findIndex((s) => s.roleRequired === 'FINANCE');
+        if (financeStepIdx === -1) {
+          const finalStep = updatedSteps.pop();
+          updatedSteps.push({
+            stepNumber: 3,
+            stepName: 'Finance Review',
+            roleRequired: 'FINANCE',
+            approverName: 'David Park',
+            status: 'PENDING',
+          });
+          if (finalStep) updatedSteps.push(finalStep);
+          financeStepIdx = updatedSteps.length - 2;
+        }
+
+        nextStepIndex = financeStepIdx;
+        newStage = 'Finance Review';
+        newStatus = 'PENDING';
+        updatedSteps[financeStepIdx] = {
+          ...updatedSteps[financeStepIdx],
+          status: 'PENDING',
+        };
+      } else {
+        // Standard/Low Risk: Sales Manager alone completes the approval!
+        nextStepIndex = updatedSteps.length - 1;
+        newStage = 'Fully Approved';
+        newStatus = 'APPROVED';
+        const finalIdx = updatedSteps.length - 1;
+        if (updatedSteps[finalIdx]) {
+          updatedSteps[finalIdx] = {
+            ...updatedSteps[finalIdx],
+            status: 'APPROVED',
+            decidedAt: now.toISOString(),
+          };
+        }
+        syncQuotationStatus(current.quoteNumber, current.quotationId, 'APPROVED');
+      }
+    } else {
+      // Step 2: Finance Review
+      const finStepIdx = updatedSteps.findIndex((s) => s.roleRequired === 'FINANCE');
+      const targetIdx = finStepIdx >= 0 ? finStepIdx : 2;
+      if (updatedSteps[targetIdx]) {
+        updatedSteps[targetIdx] = {
+          ...updatedSteps[targetIdx],
+          status: 'APPROVED',
+          approverName: approverName || 'David Park',
+          comment: comment || 'Approved by Finance.',
+          decidedAt: now.toISOString(),
+        };
+      }
+      nextStepIndex = updatedSteps.length - 1;
+      newStage = 'Fully Approved';
+      newStatus = 'APPROVED';
+      const finalIdx = updatedSteps.length - 1;
+      if (updatedSteps[finalIdx]) {
+        updatedSteps[finalIdx] = {
+          ...updatedSteps[finalIdx],
+          status: 'APPROVED',
+          decidedAt: now.toISOString(),
+        };
       }
       syncQuotationStatus(current.quoteNumber, current.quotationId, 'APPROVED');
     }
@@ -1196,7 +1538,11 @@ export const approvalsApi = {
       actor: approverName,
       role: role.replace('_', ' '),
       action: 'APPROVED',
-      comment: comment || (newStatus === 'APPROVED' ? 'Final approval granted.' : 'Forwarded to Finance review.'),
+      comment:
+        comment ||
+        (newStatus === 'APPROVED'
+          ? 'Final commercial approval granted — quote released for customer acceptance.'
+          : 'Sales Manager approved. Escalated to Finance Manager for high-risk verification.'),
       timestamp: timestampStr,
     };
 

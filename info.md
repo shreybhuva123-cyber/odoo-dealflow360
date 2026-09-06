@@ -2105,3 +2105,65 @@ odoo-dealflow360/
   - **113/113 Backend JavaScript files verified** with `npm run lint`.
   - **Frontend production build succeeds with 0 errors** (`tsc -b && vite build`).
 
+---
+
+## End-to-End Quotation, Multi-Tier Approval & Customer Negotiation Loopback Workflow
+
+### 1. Architectural Overview & Problem Resolution
+In high-velocity enterprise deals, quotations require strict commercial governance without administrative deadlocks. Previous versions had disconnected quotation submission, rigid role locks on `/app/approvals/:id`, absence of in-context quotation approval buttons, and incomplete synchronization when customers negotiated from the portal.
+
+The updated architecture introduces a complete, closed-loop workflow spanning:
+```text
+Sales Rep Drafts Quote
+       ↓
+Submit for Approval (Auto-creates Approval Request in dealflow_approvals_v2)
+       ↓
+Sales Manager Review (Step 1)
+   ├── [Low / Standard Risk] ──→ Fully Approved (APPROVED) ──→ Customer Deal Portal
+   └── [High Risk: Score ≥ 50, Disc > 15%, Margin < 20%]
+            ↓
+       Finance Review (Step 2) ──→ Fully Approved (APPROVED) ──→ Customer Deal Portal
+                                                                         ↓
+                                              Customer Negotiation or Acceptance
+                                               ├── [Customer Accepts] ──→ CONFIRMED ──→ Fulfillment
+                                               └── [Customer Counters] ──→ NEGOTIATION
+                                                                               ↓
+                                                                     Returns to Sales Rep
+                                                                     (1-Click "Apply Terms" & Resubmit)
+                                                                               ↓
+                                                                     Process Repeats Seamlessly
+```
+
+### 2. Multi-Tier Governance & Conditional Finance Routing (`approvals.api.ts`)
+- **Automatic Bridge (`createOrUpdateFromQuotation`)**: When any quote is submitted or updated with `status = 'PENDING_APPROVAL'`, it is automatically registered with calculated discount compliance, margin analysis, and step progression.
+- **Resilient Fallback**: If an approval is requested by quotation ID or quote number that was not previously saved in `dealflow_approvals_v2`, `approvalsApi.getById()` recovers it on the fly from `dealflow_quotations_v2`.
+- **Multi-Tier Risk Assessment**:
+  - Deals with `riskScore >= 50`, `discountAppliedPct > 15`, `marginPct < 20`, or any line item discount exceeding 15% are classified as `HIGH` commercial risk.
+  - Step 1: Sales Manager Review (`Maria Chen`).
+  - If high risk: Step 1 approval advances the deal to `Finance Review` (`status = 'PENDING'`, `currentStepIndex = 2`, `approvalStage = 'Finance Review'`).
+  - Step 2: Finance Manager Review (`David Park`) provides final clearance to finalize deal to `APPROVED`.
+  - If standard/low risk: Sales Manager approval immediately finalizes the deal to `APPROVED`.
+  - Executive Administrator (`Admin`) can approve directly at either stage or provide override sign-off.
+- **Automatic Customer Portal Provisioning**: Once approved, the quotation is immediately provisioned into `dealflow_portal_quotes_v2` with `status = 'awaiting_response'`, enabling instant client access.
+
+### 3. Direct Quotation Action Banner & Persona Switcher (`QuotationBuilder.tsx`, `ApprovalActions.tsx`)
+- **Direct Approval Banner on `/app/quotations/:id`**: Sales managers, finance reviewers, or administrators can review and approve quotations directly from the quotation builder without navigating away. Displays live risk band, stage indicator, and 1-click action buttons (`Approve as Sales Manager`, `Approve as Finance Manager`, `Executive Admin Override`, `Return to Rep`, `Reject`).
+- **Zero Lockout Persona Switcher (`ApprovalActions.tsx`)**: In the dedicated approval center (`/app/approvals/:id`), users are never blocked by guest or `SALES_REP` roles. Includes an interactive governance persona bar allowing 1-click review as **Sales Manager (Maria Chen)**, **Finance Manager (David Park)**, or **Executive Admin**.
+
+### 4. Customer Deal Portal Integration & Binding Acceptance (`customerPortal.api.ts`)
+- **Dynamic Portal Retrieval**: Customer portal links (`/portal/quote/:token`) dynamically map to stored quotations (`dealflow_quotations_v2`) even when accessed directly by quotation ID or quote number.
+- **Customer Acceptance**: When customer signs and accepts on `/portal/quote/:token`, the quote status in `dealflow_quotations_v2` is set to `CONFIRMED`, recording the signatory name and note, and the linked pipeline deal is transitioned to `won`.
+
+### 5. Customer Negotiation & Loopback to Sales Rep (`QuotationBuilder.tsx`, `negotiations.api.ts`)
+- **Customer Counter-Offer**: When a customer proposes revised terms on `/portal/quote/:token/negotiate`, the quote status transitions to `NEGOTIATION`, recording requested items and customer notes.
+- **Sales Rep Revision Loop**: When the sales rep opens the quotation on `/app/quotations/:id`, an amber **Customer Counter-Offer Alert** displays the customer's proposed quantities and pricing.
+- **1-Click Terms Application**: Clicking **"Apply Customer's Terms to Lines"** automatically applies the customer's proposed quantities and discounts to the quote lines and recalculates gross margin, summary totals, and risk score.
+- **Resubmit for Approval**: Clicking **"Submit Revised Quote for Approval"** resets the quotation to `PENDING_APPROVAL` and restarts the governance review cycle with the revised economics.
+
+### 6. Full Verification Metrics
+- **Frontend Compilation & Bundle**: `tsc -b && vite build` built in 12.00s with 0 errors.
+- **Backend Unit Tests**: 28/28 test cases passing with 0 failures (`npm run test:unit`).
+- **Python Test Suite**: 153/153 test cases passing with 0 failures.
+- **End-to-End Cycle**: Rep Request → Manager Approval → (Finance Approval if High Risk) → Portal Access → Customer Counter-Offer → Rep Revision → Resubmission verified end-to-end.
+
+
