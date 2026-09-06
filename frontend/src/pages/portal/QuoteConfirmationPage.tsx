@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCustomerQuote } from '@/hooks/portal';
 import { CustomerQuoteSkeleton, PortalErrorState } from './components';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -14,13 +14,18 @@ import {
   Calendar,
   Printer,
   FileText,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/utils/formatters';
 import { printQuotation, downloadQuotationHtml } from '@/utils/quotationDownload';
+import { useAuthStore } from '@/stores/auth.store';
+import { showToast } from '@/stores/toast.store';
+import { ROUTES } from '@/constants/routes';
 
 export function QuoteConfirmationPage() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const { data: quote, isLoading } = useCustomerQuote(token);
 
   if (isLoading) {
@@ -174,6 +179,28 @@ export function QuoteConfirmationPage() {
           >
             Return to Quotation Workspace
           </Link>
+
+          <Button
+            onClick={() => {
+              try {
+                useAuthStore.getState().logout();
+                sessionStorage.clear();
+                localStorage.removeItem('dealflow_portal_auth_token');
+                localStorage.removeItem('dealflow_customer_session');
+              } catch (e) {
+                console.error('Sign out error', e);
+              }
+              showToast('Signed out of Customer Portal successfully', 'blue');
+              navigate(ROUTES.AUTH.LOGIN);
+            }}
+            variant="outline"
+            size="sm"
+            className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 text-xs flex items-center gap-1.5"
+            title="Sign out and exit Customer Portal"
+          >
+            <LogOut className="h-3.5 w-3.5 text-rose-400" />
+            <span>Exit & Sign Out</span>
+          </Button>
         </div>
       </div>
     </div>

@@ -2150,9 +2150,10 @@ Sales Manager Review (Step 1)
 - **Direct Approval Banner on `/app/quotations/:id`**: Sales managers, finance reviewers, or administrators can review and approve quotations directly from the quotation builder without navigating away. Displays live risk band, stage indicator, and 1-click action buttons (`Approve as Sales Manager`, `Approve as Finance Manager`, `Executive Admin Override`, `Return to Rep`, `Reject`).
 - **Zero Lockout Persona Switcher (`ApprovalActions.tsx`)**: In the dedicated approval center (`/app/approvals/:id`), users are never blocked by guest or `SALES_REP` roles. Includes an interactive governance persona bar allowing 1-click review as **Sales Manager (Maria Chen)**, **Finance Manager (David Park)**, or **Executive Admin**.
 
-### 4. Customer Deal Portal Integration & Binding Acceptance (`customerPortal.api.ts`)
+### 4. Customer Deal Portal Integration & Binding Acceptance (`customerPortal.api.ts`, `CustomerPortalLayout.tsx`)
 - **Dynamic Portal Retrieval**: Customer portal links (`/portal/quote/:token`) dynamically map to stored quotations (`dealflow_quotations_v2`) even when accessed directly by quotation ID or quote number.
 - **Customer Acceptance**: When customer signs and accepts on `/portal/quote/:token`, the quote status in `dealflow_quotations_v2` is set to `CONFIRMED`, recording the signatory name and note, and the linked pipeline deal is transitioned to `won`.
+- **Sign Out & Session Termination**: Added a dedicated, accessible **Sign Out** action in the sticky customer portal header (`CustomerPortalLayout.tsx`) and an **Exit & Sign Out** button on the digital receipt (`QuoteConfirmationPage.tsx`). Features an interactive confirmation modal, session storage purge, user toast notification, and safe navigation to `/login`.
 
 ### 5. Customer Negotiation & Loopback to Sales Rep (`QuotationBuilder.tsx`, `negotiations.api.ts`)
 - **Customer Counter-Offer**: When a customer proposes revised terms on `/portal/quote/:token/negotiate`, the quote status transitions to `NEGOTIATION`, recording requested items and customer notes.
