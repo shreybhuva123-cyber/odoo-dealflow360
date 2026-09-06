@@ -300,13 +300,29 @@ export function QuotationList({
                     </td>
                     <td className="td-muted">{q.assignedRepName || 'A. Morgan'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleRowAction(q)}
-                      >
-                        Open Builder →
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {q.status === 'PENDING_APPROVAL' && (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/app/approvals/${q.id}`);
+                            }}
+                            title="Open Decision & Action Center to approve or reject this quotation"
+                          >
+                            <span>✓</span>
+                            <span>Review & Approve</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => handleRowAction(q)}
+                        >
+                          Open Builder →
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
